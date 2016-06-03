@@ -35,6 +35,9 @@
         rotateTicks = false,
         timeIsRelative = false,
         fullLengthBackgrounds = false,
+        autoHeightByLabel = false,
+        maxHeightByLabel = 20,
+        minHeightByLabel = 5,
         itemHeight = 20,
         itemMargin = 5,
         navMargin = 60,
@@ -52,6 +55,21 @@
         axisBgColor = "white",
         chartData = {}
       ;
+    var calcMaxHeightByLabel = function() {
+      maxHeightByLabel = chartData.length;
+
+      if (chartData.length) {
+        chartData.forEach(function (d, i, datum) {
+          if (d.times) {
+            d.times.forEach(function (_d, _i, _datum) {
+              if (_d.display == "circle" && _d.label) {
+                maxHeightByLabel = Math.max(maxHeightByLabel, parseFloat(_d.label) || 0);
+              }
+            });
+          }
+        });
+      }
+    };
 
     var appendTimeAxis = function(g, xAxis, yPosition) {
 
@@ -250,6 +268,9 @@
       // draw the chart
       g.each(function(d, i) {
         chartData = d;
+        if (autoHeightByLabel) {
+          calcMaxHeightByLabel();
+        }
         d.forEach( function(datum, index){
           var data = datum.times;
           var hasLabel = (typeof(datum.label) != "undefined");
@@ -274,7 +295,17 @@
                 return getStackPosition(d, i) + itemHeight/2;
             })
             .attr("cx", getXPos)
-            .attr("r", itemHeight / 2)
+            .attr("r", function(d, i) {
+              var val = parseFloat(d.label);
+              if (autoHeightByLabel && !isNaN(val) && !d.itemHeight) {
+                return calcAutoHeight(val) / 2;
+              } else if (d.itemHeight) {
+                return Math.min(d.itemHeight, itemHeight) / 2;
+              } else {
+                return itemHeight / 2
+              }
+            })
+            // .attr("r", itemHeight / 2)
             .attr("height", itemHeight)
             .style("fill", function(d, i){
               var dColorPropName;
@@ -482,6 +513,11 @@
           .style("stroke-width", lineFormat.width);
       }
 
+      function calcAutoHeight(d) {
+        var val = (d * itemHeight) / maxHeightByLabel;
+        return val < minHeightByLabel ? minHeightByLabel : val;
+      }
+
     }
 
     // SETTINGS
@@ -501,6 +537,12 @@
     timeline.itemHeight = function (h) {
       if (!arguments.length) return itemHeight;
       itemHeight = h;
+      return timeline;
+    };
+
+    timeline.autoHeightByLabel = function (h) {
+      if (!arguments.length) return autoHeightByLabel;
+      autoHeightByLabel = h;
       return timeline;
     };
 
