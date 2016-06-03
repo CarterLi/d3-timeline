@@ -310,6 +310,9 @@
             .append("text")
             .attr("x", getXTextPos)
             .attr("y", getStackTextPosition)
+            .attr("class", function (d, i) {
+              return datum.class ? "timelineSeriesText_"+datum.class : "timelineSeriesText_"+index;
+            })
             .text(function(d) {
               return d.label;
             })
