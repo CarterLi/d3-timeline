@@ -412,7 +412,11 @@
       }
 
       function getXTextPos(d, i) {
-        return margin.left + (d.starting_time - beginning) * scaleFactor + 5;
+        if (d.display == "circle" && d.label) {
+          return margin.left + (d.starting_time - beginning) * scaleFactor - (String(d.label).length * 3.5);
+        } else {
+          return margin.left + (d.starting_time - beginning) * scaleFactor + 5;
+        }
       }
 
       function setHeight() {
