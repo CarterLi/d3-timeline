@@ -6,6 +6,8 @@
     var hover = function () {},
         mouseover = function () {},
         mouseout = function () {},
+        labelmouseover = function () {},
+        labelmouseout = function () {},
         click = function () {},
         scroll = function () {},
         labelFunction = function(label) { return label; },
@@ -153,7 +155,13 @@
         .attr("class", "timeline-label")
         .attr("transform", "translate(" + labelMargin + "," + rowsDown + ")")
         .text(hasLabel ? labelFunction(datum.label) : datum.id)
-        .on("click", function (d, i) { click(d, index, datum); });
+        .on("click", function (d, i) { click(d, index, datum); })
+        .on("mouseover", function (d, i) {
+          labelmouseover(d, i, datum);
+        })
+        .on("mouseout", function (d, i) {
+          labelmouseout(d, i, datum);
+        });
     };
 
     function timeline (gParent) {
@@ -339,7 +347,13 @@
               .attr("transform", "translate("+ 0 +","+ (margin.top + (itemHeight + itemMargin) * yAxisMapping[index])+")")
               .attr("xlink:href", datum.icon)
               .attr("width", margin.left)
-              .attr("height", itemHeight);
+              .attr("height", itemHeight)
+              .on("labelmouseover", function (d, i) {
+                labelmouseover(d, i, datum);
+              })
+              .on("labelmouseout", function (d, i) {
+                labelmouseout(d, i, datum);
+              });
           }
 
           function getStackPosition(d, i) {
@@ -547,6 +561,18 @@
     timeline.mouseout = function (mouseoutFunc) {
       if (!arguments.length) return mouseout;
       mouseout = mouseoutFunc;
+      return timeline;
+    };
+
+    timeline.labelmouseover = function (labelmouseoverFunc) {
+      if (!arguments.length) return labelmouseover;
+      labelmouseover = labelmouseoverFunc;
+      return timeline;
+    };
+
+    timeline.labelmouseout = function (labelmouseoutFunc) {
+      if (!arguments.length) return labelmouseout;
+      labelmouseout = labelmouseoutFunc;
       return timeline;
     };
 
