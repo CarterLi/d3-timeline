@@ -30,6 +30,7 @@
         beginning = 0,
         labelMargin = 0,
         ending = 0,
+        startDatePosition = 0,
         margin = {left: 30, right:30, top: 30, bottom:30},
         stacked = false,
         rotateTicks = false,
@@ -421,6 +422,14 @@
         gParent
           .attr("class", "scrollable")
           .call(zoom);
+
+
+        if (startDatePosition && beginning <= startDatePosition && startDatePosition <= ending) {
+          var x = - (getXPos({starting_time: startDatePosition}) - margin.left);
+          zoom.translate([x, 0]);
+          g.attr("transform", "translate(" + x + ",0)");
+          scroll(x*scaleFactor, xScale);
+        }
       }
 
       if (rotateTicks) {
@@ -753,6 +762,12 @@
       navigateLeft = navigateBackwards;
       navigateRight = navigateForwards;
       showAxisNav = !showAxisNav;
+      return timeline;
+    };
+
+    timeline.startDatePosition = function(time) {
+      if (!arguments.length) return startDatePosition;
+      startDatePosition = time;
       return timeline;
     };
 
