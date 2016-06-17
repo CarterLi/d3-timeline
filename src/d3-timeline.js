@@ -37,7 +37,7 @@
         timeIsRelative = false,
         fullLengthBackgrounds = false,
         autoHeightByLabel = false,
-        maxHeightByLabel = 20,
+        maxHeightByLabel = 0,
         minHeightByLabel = 5,
         itemHeight = 20,
         itemMargin = 5,
@@ -57,8 +57,6 @@
         chartData = {}
       ;
     var calcMaxHeightByLabel = function() {
-      maxHeightByLabel = chartData.length;
-
       if (chartData.length) {
         chartData.forEach(function (d, i, datum) {
           if (d.times) {
@@ -524,7 +522,7 @@
 
       function calcAutoHeight(d) {
         var val = (d * itemHeight) / maxHeightByLabel;
-        return val < minHeightByLabel ? minHeightByLabel : val;
+        return Math.max(val, minHeightByLabel);
       }
 
     }
@@ -552,6 +550,12 @@
     timeline.autoHeightByLabel = function (h) {
       if (!arguments.length) return autoHeightByLabel;
       autoHeightByLabel = h;
+      return timeline;
+    };
+
+    timeline.minHeightByLabel = function (h) {
+      if (!arguments.length) return minHeightByLabel;
+      minHeightByLabel = h;
       return timeline;
     };
 
