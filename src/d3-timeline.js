@@ -354,6 +354,9 @@
             .text(function(d) {
               return d.label;
             })
+            .attr("text-anchor", function (d) {
+              return d.alignLabel == "center" ? "middle" : "start";
+            })
           ;
 
           if (rowSeparatorsColor) {
@@ -464,10 +467,14 @@
       }
 
       function getXTextPos(d, i) {
+        var startingPos = margin.left + (d.starting_time - beginning) * scaleFactor;
+        var endingPos = margin.left + (d.ending_time - beginning) * scaleFactor;
         if (d.display == "circle" && d.label) {
-          return margin.left + (d.starting_time - beginning) * scaleFactor - (String(d.label).length * 3.5);
+          return startingPos - (String(d.label).length * 3.5);
+        } else if (d.alignLabel == "center") {
+          return startingPos + (endingPos - startingPos) / 2;
         } else {
-          return margin.left + (d.starting_time - beginning) * scaleFactor + 5;
+          return startingPos + 5;
         }
       }
 
