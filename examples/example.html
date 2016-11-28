@@ -1,21 +1,24 @@
 <!doctype html>
 <html>
 <head>
-  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script src="http://d3js.org/d3.v3.js" charset="utf-8"></script>
   <script src="../src/d3-timeline.js"></script>
 
   <style type="text/css">
     .axis path,
-    .axis line {
+    .axis line,
+    .line line,
+    .top-line {
       fill: none;
       stroke: black;
       shape-rendering: crispEdges;
     }
 
-    .axis text {
+    .axis text,
+    .line text {
       font-family: sans-serif;
       font-size: 10px;
+      stroke: none;
     }
 
     .timeline-label {
@@ -25,345 +28,110 @@
 
     #timeline2 .axis {
       transform: translate(0px,40px);
-      -ms-transform: translate(0px,40px); /* IE 9 */
-      -webkit-transform: translate(0px,40px); /* Safari and Chrome */
-      -o-transform: translate(0px,40px); /* Opera */
-      -moz-transform: translate(0px,40px); /* Firefox */
     }
-    
+
     .coloredDiv {
       height:20px; width:20px; float:left;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .line {
+      stroke: black;
+    }
+
+    .line circle {
+      fill: #eee;
+    }
+
+    .line .label {
+      text-anchor: middle;
     }
   </style>
   <script type="text/javascript">
     window.onload = function() {
-      var testData = [
-        {times: [{"starting_time": 1355752800000, "ending_time": 1355759900000}, {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {times: [{"starting_time": 1355759910000, "ending_time": 1355761900000}, ]},
-        {times: [{"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-      ];
-
-      var rectAndCircleTestData = [
-        {times: [{"starting_time": 1355752800000,
-                 "display": "circle"}, {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {times: [{"starting_time": 1355759910000,
-        "display":"circle"}, ]},
-        {times: [{"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-      ];
-
-      var labelTestData = [
-        {label: "person a", times: [{"starting_time": 1355752800000, "ending_time": 1355759900000}, {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {label: "person b", times: [{"starting_time": 1355759910000, "ending_time": 1355761900000}, ]},
-        {label: "person c", times: [{"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-      ];
-
       var iconTestData = [
-        {class:"jackie", icon: "jackie.png", times: [
-          {"starting_time": 1355752800000, "ending_time": 1355759900000}, 
-          {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {class:"troll", icon: "troll.png", times: [
-          {"starting_time": 1355759910000, "ending_time": 1355761900000,
-          "display":"circle"}, ]},
-        {class:"wat", icon: "wat.png", times: [
-          {"starting_time": 1355761910000, "ending_time": 1355763910000}]}
+        {label: 'Jackie', class:'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000}]},
+        {label: 'Troll', class:'troll', icon: 'troll.png', times: [
+          {'starting_time': 1355759910000, 'ending_time': 1355761900000}]},
+        {label: 'Wat', class:'wat', icon: 'wat.png', times: [
+          {'starting_time': 1355761910000, 'ending_time': 1355763910000}]}
       ];
 
-      var labelColorTestData = [
-        {label: "person a", times: [{"color":"green", "label":"Weeee", "starting_time": 1355752800000, "ending_time": 1355759900000}, {"color":"blue", "label":"Weeee", "starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {label: "person b", times: [{"color":"pink", "label":"Weeee", "starting_time": 1355759910000, "ending_time": 1355761900000}, ]},
-        {label: "person c", times: [{"color":"yellow", "label":"Weeee", "starting_time": 1355761910000, "ending_time": 1355763910000}]}
-      ];
-
-      var testDataWithColor = [
-        {label: "fruit 1", fruit: "orange", times: [
-          {"starting_time": 1355759910000, "ending_time": 1355761900000}]},
-        {label: "fruit 2", fruit: "apple", times: [
-          {"starting_time": 1355752800000, "ending_time": 1355759900000},
-          {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {label: "fruit3", fruit: "lemon", times: [
-          {"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-        ];
-
-      var testDataWithColorPerTime = [
-        {label: "fruit 2", fruit: "apple", times: [
-          {fruit: "orange", "starting_time": 1355752800000, "ending_time": 1355759900000},
-          {"starting_time": 1355767900000, "ending_time": 1355774400000},
-          {fruit: "lemon", "starting_time": 1355774400000, "ending_time": 1355775500000}]}
-        ];
-
-      var testDataRelative = [
-        {times: [{"starting_time": 1355752800000, "ending_time": 1355759900000}, {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-        {times: [{"starting_time": 1355759910000, "ending_time": 1355761900000}]},
-        {times: [{"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-      ];
-
-      var width = 500;
-      function timelineRect() {
-        var chart = d3.timeline();
-
-        var svg = d3.select("#timeline1").append("svg").attr("width", width)
-          .datum(testData).call(chart);
-      }
-      
-      function timelineRectNoAxis() {
-        var chart = d3.timeline().showTimeAxis();
-
-        var svg = d3.select("#timeline1_noaxis").append("svg").attr("width", width)
-          .datum(testData).call(chart);
-      }
-
-      function timelineCircle() {
+      void function timelineStackedIcons() {
         var chart = d3.timeline()
-          .tickFormat( //
-            {format: d3.time.format("%I %p"),
-            tickTime: d3.time.hours,
-            tickInterval: 1,
-            tickSize: 30})
-          .display("circle"); // toggle between rectangles and circles
-
-        var svg = d3.select("#timeline2").append("svg").attr("width", width)
-          .datum(testData).call(chart);
-      }
-
-      function timelineRectAndCircle() {
-        var chart = d3.timeline();
-
-        var svg = d3.select("#timeline2_combine").append("svg").attr("width", width)
-          .datum(rectAndCircleTestData).call(chart);
-      }
-
-      function timelineHover() {
-        var chart = d3.timeline()
-          .width(width*4)
+          .beginning(1355752800000)
+          .ending(1355774400000)
+          .showTimeAxisTick()
           .stack()
           .margin({left:70, right:30, top:0, bottom:0})
-          .hover(function (d, i, datum) {
-          // d is the current rendering object
-          // i is the index during d3 rendering
-          // datum is the id object
-            var div = $('#hoverRes');
-            var colors = chart.colors();
-            div.find('.coloredDiv').css('background-color', colors(i))
-            div.find('#name').text(datum.label);
-          })
-          .click(function (d, i, datum) {
-            alert(datum.label);
-          })
-          .scroll(function (x, scale) {
-            $("#scrolled_date").text(scale.invert(x) + " to " + scale.invert(x+width));
-          });
+          .background('#eee')
+          .rowSeparators('red');
+        const format = d3.time.format("%X")
+        var svg = d3.select('#timeline').append('svg').attr('width', 1000)
+          .datum(iconTestData).call(chart).on('mousemove', function() {
+          const [x, y] = d3.mouse(this);
+          const { left , right } = chart.margin()
+          if ((x >= left && x <= chart.width() - right) && (y >= 25 && y <= chart.height() - 25)) {
+            line.classed('hidden', false);
+          } else {
+            line.classed('hidden', true);
+            return;
+          }
 
-        var svg = d3.select("#timeline3").append("svg").attr("width", width)
-          .datum(labelTestData).call(chart);
-      }
+          line.attr('transform', `translate(${x} 0)`)
+            .select('.label').text(format(new Date(xrScale(x))));
+        });
+        var xrScale = d3.time.scale()
+          .domain([chart.margin().left, chart.width() - chart.margin().right])
+          .range([chart.beginning(), chart.ending()]);
 
-      function timelineStackedIcons() {
-        var chart = d3.timeline()
-          .beginning(1355752800000) // we can optionally add beginning and ending times to speed up rendering a little
-          .ending(1355774400000)
-          .showTimeAxisTick() // toggles tick marks
-          .stack() // toggles graph stacking
-          .margin({left:70, right:30, top:0, bottom:0})
-          ;
-        var svg = d3.select("#timeline5").append("svg").attr("width", width)
-          .datum(iconTestData).call(chart);
-      }
+        const { left , right } = chart.margin()
+        svg.append('line')
+          .attr('class', 'top-line')
+          .attr('x1', left)
+          .attr('x2', chart.width() - right)
+          .attr('y1', 25 - 2)
+          .attr('y2', 25 - 2);
 
-      function timelineLabelColor() {
-        var chart = d3.timeline()
-          .beginning(1355752800000) // we can optionally add beginning and ending times to speed up rendering a little
-          .ending(1355774400000)
-          .stack() // toggles graph stacking
-          .margin({left:70, right:30, top:0, bottom:0})
-          ;
-        var svg = d3.select("#timeline6").append("svg").attr("width", width)
-          .datum(labelColorTestData).call(chart);
-      }
-
-      function timelineRotatedTicks() {
-        var chart = d3.timeline()
-          .rotateTicks(45);
-
-        var svg = d3.select("#timeline7").append("svg").attr("width", width)
-          .datum(testData).call(chart);
-      }
-
-      function timelineRectColors() {
-
-        var colorScale = d3.scale.ordinal().range(['#6b0000','#ef9b0f','#ffee00'])
-            .domain(['apple','orange','lemon']);
-
-        var chart = d3.timeline()
-            .colors( colorScale )
-            .colorProperty('fruit');
-
-        var svg = d3.select("#timelineColors").append("svg").attr("width", width)
-          .datum(testDataWithColor).call(chart);
-      }
-
-      function timelineRectColorsPerTime() {
-        var colorScale = d3.scale.ordinal().range(['#6b0000','#ef9b0f','#ffee00'])
-          .domain(['apple','orange','lemon']);
-        var chart = d3.timeline()
-          .colors( colorScale )
-          .colorProperty('fruit');      
-        var svg = d3.select("#timelineColorsPerTime").append("svg").attr("width", width)
-          .datum(testDataWithColorPerTime).call(chart);  
-      }
-
-      function timelineRelativeTime() {
-        //This solution is for relative time is from
-        //http://stackoverflow.com/questions/11286872/how-do-i-make-a-custom-axis-formatter-for-hours-minutes-in-d3-js
-        var chart = d3.timeline()
-          .relativeTime()
-          .tickFormat({
-            format: function(d) { return d3.time.format("%H:%M")(d) },
-            tickTime: d3.time.minutes,
-            tickInterval: 30,
-            tickSize: 15,
-          });
-
-        var svg = d3.select("#timelineRelativeTime").append("svg").attr("width", width)
-          .datum(testDataRelative).call(chart);
-          console.log(testDataRelative);
-      }
-
-      function timelineAxisTop() {
-        var chart = d3.timeline().showAxisTop().stack();
-
-        var svg = d3.select("#timelineAxisTop").append("svg").attr("width", width)
-            .datum(testData).call(chart);
-      }
-
-      function timelineBgndTick() {
-        var chart = d3.timeline().stack().showTimeAxisTick().background('grey');
-
-        var svg = d3.select("#timelineBgndTick").append("svg").attr("width", width)
-            .datum(testData).call(chart);
-      }
-
-      function timelineBgnd() {
-        var chart = d3.timeline().stack().background('grey');
-
-        var svg = d3.select("#timelineBgnd").append("svg").attr("width", width)
-            .datum(testData).call(chart);
-      }
-
-   function timelineComplex() {
-        var chart = d3.timeline();
-     chart.stack();
-     chart.showTimeAxisTick();
-//     chart.showAxisTop();
-//     chart.showToday();
-//     chart.itemHeight(50);
-     chart.margin({left: 250, right: 0, top: 20, bottom: 0});
-     chart.itemMargin(0);
-     chart.labelMargin(25);
-
-     var backgroundColor = "#FCFCFD";
-     var altBackgroundColor = "red";
-     chart.background(function (datum, i) {
-       var odd = (i % 2) === 0;
-       return odd ? altBackgroundColor : backgroundColor;
-     });
-     chart.fullLengthBackgrounds();
-        var svg = d3.select("#timelineComplex").append("svg").attr("width", width)
-            .datum(labelTestData).call(chart);
-      }
-
-      timelineRect();
-      timelineRectNoAxis();
-      timelineCircle();
-      timelineRectAndCircle();
-      timelineHover();
-      timelineStackedIcons();
-      timelineLabelColor();
-      timelineRotatedTicks();
-      timelineRectColors();
-      timelineRectColorsPerTime();
-      timelineRelativeTime();
-      timelineAxisTop();
-      timelineBgndTick();
-      timelineBgnd();
-      timelineComplex();
+        var line = svg.append('g').attr('class', 'line hidden').call(g => {
+          g.append('circle')
+            .attr('cx', 0)
+            .attr('cy', 25 - 2)
+            .attr('r', 2);
+          g.append('circle')
+            .attr('cx', 0)
+            .attr('cy', chart.height() - 25 + 1 + chart.itemMargin())
+            .attr('r', 2);
+          g.append('line')
+            .attr('x1', 0)
+            .attr('x2', 0)
+            .attr('y1', 25)
+            .attr('y2', chart.height() - 25 - 1 + chart.itemMargin());
+          g.append('text')
+            .attr('x', 2)
+            .attr('y', 13)
+            .attr('dy', '.71em')
+            .text('Time');
+          g.append('text')
+            .attr('class', 'label')
+            .attr('x', 0)
+            .attr('y', chart.height() - 15 + chart.itemMargin())
+            .attr('dy', '.71em')
+            .text('? PM');
+        });
+      }();
     }
   </script>
 </head>
 <body>
   <div>
-    <h3>A simple timeline</h3>
-    <div id="timeline1"></div>
+    <h3>Test</h3>
+    <div id="timeline"></div>
   </div>
-  <div>
-    <h3>A simple timeline without Axis</h3>
-    <div id="timeline1_noaxis"></div>
-  </div>
-  <div>
-    <h3>It works with circles too</h3>
-    <div id="timeline2"></div>
-  </div>
-  <div>
-    <h3>Combine circles and rectangles</h3>
-    <div id="timeline2_combine"></div>
-  </div>
-  <div>
-    <h3>A stacked timeline with hover, click, and scroll events</h3>
-    <div id="timeline3"></div>
-    <div id="hoverRes">
-      <div class="coloredDiv"></div>
-      <div id="name"></div>
-      <div id="scrolled_date"></div>
-    </div>
-  </div>
-  <div>
-    <h3>We can also use icons</h3>
-    <div id="timeline5"></div>
-  </div>
-
-  <div>
-    <h3>We can change colors and put labels</h3>
-    <div id="timeline6"></div>
-  </div>
-
-  <div>
-    <h3>We can also rotate tick mark labels</h3>
-    <div id="timeline7"></div>
-  </div>
-
-  <div>
-    <h3>A timeline with colors mapped from the data</h3>
-    <div id="timelineColors"></div>
-  </div>
-
-  <div>
-    <h3>A timeline with colors mapped from the data for individual time objects</h3>
-    <div id="timelineColorsPerTime"></div>
-  </div>
-
-  <div>
-    <h3>A timeline with relative timepoints</h3>
-    <div width="100%" id="timelineRelativeTime"></div>
-  </div>
-
-  <div>
-    <h3>A stacked timeline with axis on top</h3>
-    <div width="100%" id="timelineAxisTop"></div>
-  </div>
-
-  <div>
-    <h3>A stacked timeline with backgrounds</h3>
-    <div width="100%" id="timelineBgnd"></div>
-  </div>
-
-  <div>
-    <h3>A stacked timeline with backgrounds and ticks</h3>
-    <div width="100%" id="timelineBgndTick"></div>
-  </div>
-
-  <div>
-    <h3>A complex timeline</h3>
-    <div width="100%" id="timelineComplex"></div>
-  </div>
-
 </body>
 </html>
