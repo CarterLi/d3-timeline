@@ -1,8 +1,6 @@
 // vim: ts=2 sw=2
 (function () {
   d3.timeline = function() {
-    var DISPLAY_TYPES = ["circle", "rect"];
-
     var hover = function () {},
         mouseover = function () {},
         mouseout = function () {},
@@ -26,7 +24,6 @@
         },
         colorCycle = d3.scale.category20(),
         colorPropertyName = null,
-        display = "rect",
         beginning = 0,
         labelMargin = 0,
         ending = 0,
@@ -54,21 +51,7 @@
         showAxisNav = false,
         showAxisCalendarYear = false,
         axisBgColor = "white",
-        chartData = {}
-      ;
-    function calcMaxHeightByLabel() {
-      if (chartData.length) {
-        chartData.forEach(function (d, i, datum) {
-          if (d.times) {
-            d.times.forEach(function (_d, _i, _datum) {
-              if (_d.display == "circle" && _d.label) {
-                maxHeightByLabel = Math.max(maxHeightByLabel, parseFloat(_d.label) || 0);
-              }
-            });
-          }
-        });
-      }
-    }
+        chartData = {};
 
     function appendTimeAxis(g, xAxis, yPosition) {
       if(showAxisHeaderBackground){ appendAxisHeaderBackground(g, 0, 0); }
@@ -260,118 +243,104 @@
       }
 
       function drawChart(d) {
-        d.forEach(function(datum, index){
-          var data = datum.times;
-          var hasLabel = (typeof(datum.label) != "undefined");
-          var gLine = g.append('g')
-            .attr("transform", "translate(0 " + (margin.top + (stacked ? (itemHeight + itemMargin) * yAxisMapping[index] : 0)) + ")")
-            .attr("class", "timeline-series timeline-series-" + (datum.class || index));
+        g.selectAll('g').data(d).enter()
+          .append('g')
+          .each(function (datum, index) {
+            var data = datum.times;
+            var hasLabel = datum.label != null;
 
-          // issue warning about using id per data set. Ids should be individual to data elements
-          if (typeof(datum.id) != "undefined") {
-            console.warn("d3Timeline Warning: Ids per dataset is deprecated in favor of a 'class' key. Ids are now per data element.");
-          }
+            gLine = d3.select(this)
+              .attr("transform", "translate(0 " + (margin.top + (stacked ? (itemHeight + itemMargin) * yAxisMapping[index] : 0)) + ")")
+              .attr("class", "timeline-series timeline-series-" + (datum.class || index));
 
-          if (backgroundColor) { appendBackgroundBar(yAxisMapping, index, gLine, data, datum); }
-          gLine.selectAll(display + '.timeline-bar').data(data).enter()
-            .append(function(d, i) {
-                return document.createElementNS(d3.ns.prefix.svg, "display" in d? d.display:display);
-            })
-            .attr("class", "timeline-bar")
-            .attr("x", getXPos)
-            .attr("width", function (d, i) {
-              return (d.ending_time - d.starting_time) * scaleFactor;
-            })
-            .attr("cy", itemHeight/2)
-            .attr("cx", getXPos)
-            .attr("r", function(d, i) {
-              var val = parseFloat(d.label);
-              if (autoHeightByLabel && !isNaN(val) && !d.itemHeight) {
-                return calcAutoHeight(val) / 2;
-              } else if (d.itemHeight) {
-                return Math.min(d.itemHeight, itemHeight) / 2;
-              } else {
-                return itemHeight / 2
-              }
-            })
-            // .attr("r", itemHeight / 2)
-            .attr("height", itemHeight)
-            .attr("fill", function(d, i){
-              var dColorPropName;
-              if (d.color) return d.color;
-              if( colorPropertyName ){
-                dColorPropName = d[colorPropertyName];
-                if ( dColorPropName ) {
-                  return colorCycle( dColorPropName );
-                } else {
-                  return colorCycle( datum[colorPropertyName] );
-                }
-              }
-              return colorCycle(index);
-            })
-            .on("mousemove", function (d, i) {
-              hover(d, index, datum);
-            })
-            .on("mouseover", function (d, i) {
-              mouseover(d, i, datum);
-            })
-            .on("mouseout", function (d, i) {
-              mouseout(d, i, datum);
-            })
-            .on("click", function (d, i) {
-              click(d, index, datum);
-            })
-            .attr("id", function(d, i) {
-              // use deprecated id field
-              if (datum.id && !d.id) {
-                return 'timelineItem_'+datum.id;
-              }
+            // issue warning about using id per data set. Ids should be individual to data elements
+            if (typeof(datum.id) != "undefined") {
+              console.warn("d3Timeline Warning: Ids per dataset is deprecated in favor of a 'class' key. Ids are now per data element.");
+            }
 
-              return d.id ? d.id : "timelineItem_"+index+"_"+i;
-            })
-          ;
-
-          gLine.selectAll('text.timeline-text').data(data).enter()
-            .append("text")
-            .attr("class", "timeline-text")
-            .attr("x", getXTextPos)
-            .attr("y", itemHeight*0.75)
-            .text(function(d) {
-              return d.label;
-            })
-            .attr("text-anchor", function (d) {
-              return d.alignLabel == "center" ? "middle" : "start";
-            })
-          ;
-
-          if (rowSeparatorsColor) {
-            gLine.append("svg:line")
-              .attr("class", "row-separator")
-              .attr("x1", 0 + margin.left)
-              .attr("x2", width - margin.right)
-              .attr("y1", itemHeight + itemMargin / 2)
-              .attr("y2", itemHeight + itemMargin / 2)
-              .attr("stroke-width", 1)
-              .attr("stroke", rowSeparatorsColor);
-          }
-
-          // add the label
-          if (hasLabel) { appendLabel(gLine, yAxisMapping, index, hasLabel, datum); }
-
-          if (typeof(datum.icon) !== "undefined") {
-            gLine.append("image")
-              .attr("class", "timeline-label")
-              .attr("xlink:href", datum.icon)
-              .attr("width", margin.left)
-              .attr("height", itemHeight)
-              .on("labelmouseover", function (d, i) {
-                labelmouseover(d, i, datum);
+            if (backgroundColor) { appendBackgroundBar(yAxisMapping, index, gLine, data, datum); }
+            gLine.selectAll('.timeline-bar').data(data).enter()
+              .append('rect')
+              .attr("class", "timeline-bar")
+              .attr("x", getXPos)
+              .attr("width", function (d, i) {
+                return (d.ending_time - d.starting_time) * scaleFactor;
               })
-              .on("labelmouseout", function (d, i) {
-                labelmouseout(d, i, datum);
+              .attr("height", itemHeight)
+              .attr("fill", function(d, i){
+                var dColorPropName;
+                if (d.color) return d.color;
+                if( colorPropertyName ){
+                  dColorPropName = d[colorPropertyName];
+                  if ( dColorPropName ) {
+                    return colorCycle( dColorPropName );
+                  } else {
+                    return colorCycle( datum[colorPropertyName] );
+                  }
+                }
+                return colorCycle(index);
+              })
+              .on("mousemove", function (d, i) {
+                hover(d, index, datum);
+              })
+              .on("mouseover", function (d, i) {
+                mouseover(d, i, datum);
+              })
+              .on("mouseout", function (d, i) {
+                mouseout(d, i, datum);
+              })
+              .on("click", function (d, i) {
+                click(d, index, datum);
+              })
+              .attr("id", function(d, i) {
+                // use deprecated id field
+                if (datum.id && !d.id) {
+                  return 'timelineItem_'+datum.id;
+                }
+
+                return d.id ? d.id : "timelineItem_"+index+"_"+i;
               });
-          }
-        });
+
+            gLine.selectAll('.timeline-text').data(data).enter()
+              .append("text")
+              .attr("class", "timeline-text")
+              .attr("x", getXTextPos)
+              .attr("y", itemHeight*0.75)
+              .text(function(d) {
+                return d.label;
+              })
+              .attr("text-anchor", function (d) {
+                return d.alignLabel == "center" ? "middle" : "start";
+              });
+
+            if (rowSeparatorsColor) {
+              gLine.append("svg:line")
+                .attr("class", "row-separator")
+                .attr("x1", 0 + margin.left)
+                .attr("x2", width - margin.right)
+                .attr("y1", itemHeight + itemMargin / 2)
+                .attr("y2", itemHeight + itemMargin / 2)
+                .attr("stroke-width", 1)
+                .attr("stroke", rowSeparatorsColor);
+            }
+
+            // add the label
+            if (hasLabel) { appendLabel(gLine, yAxisMapping, index, hasLabel, datum); }
+
+            if (typeof(datum.icon) !== "undefined") {
+              gLine.append("image")
+                .attr("class", "timeline-label")
+                .attr("xlink:href", datum.icon)
+                .attr("width", margin.left)
+                .attr("height", itemHeight)
+                .on("labelmouseover", function (d, i) {
+                  labelmouseover(d, i, datum);
+                })
+                .on("labelmouseout", function (d, i) {
+                  labelmouseout(d, i, datum);
+                });
+            }
+          });
       }
 
       // draw the chart
@@ -447,9 +416,7 @@
       function getXTextPos(d, i) {
         var startingPos = margin.left + (d.starting_time - beginning) * scaleFactor;
         var endingPos = margin.left + (d.ending_time - beginning) * scaleFactor;
-        if (d.display == "circle" && d.label) {
-          return startingPos - (String(d.label).length * 3.5);
-        } else if (d.alignLabel == "center") {
+        if (d.alignLabel == "center") {
           return startingPos + (endingPos - startingPos) / 2;
         } else {
           return startingPos + 5;
@@ -565,12 +532,6 @@
     timeline.width = function (w) {
       if (!arguments.length) return width;
       width = w;
-      return timeline;
-    };
-
-    timeline.display = function (displayType) {
-      if (!arguments.length || (DISPLAY_TYPES.indexOf(displayType) == -1)) return display;
-      display = displayType;
       return timeline;
     };
 
