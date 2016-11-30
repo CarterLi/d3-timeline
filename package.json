@@ -3,8 +3,8 @@
   "version": "0.0.5.llollo.2",
   "main": "src/d3-timeline.js",
   "repository": "https://github.com/jiahuang/d3-timeline.git",
-  "license" : "MIT",
+  "license": "MIT",
   "dependencies": {
-    "d3": ">=3.4.3"
+    "d3": "^3.5.17"
   }
 }

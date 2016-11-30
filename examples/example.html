@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-  <script src="http://d3js.org/d3.v3.js" charset="utf-8"></script>
+  <script src="../node_modules/d3/d3.js" charset="utf-8"></script>
   <script src="../src/d3-timeline.js"></script>
 
   <style type="text/css">
@@ -40,6 +40,7 @@
 
     .line {
       stroke: black;
+      pointer-events: none;
     }
 
     .line circle {
@@ -52,25 +53,38 @@
   </style>
   <script type="text/javascript">
     window.onload = function() {
-      var iconTestData = [
+      const iconTestData = [
         {label: 'Jackie', class:'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000}]},
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200}]},
         {label: 'Troll', class:'troll', icon: 'troll.png', times: [
-          {'starting_time': 1355759910000, 'ending_time': 1355761900000}]},
+          {'starting_time': 1355759910000, 'ending_time': 1355761900000, value: 50}]},
         {label: 'Wat', class:'wat', icon: 'wat.png', times: [
-          {'starting_time': 1355761910000, 'ending_time': 1355763910000}]}
+          {'starting_time': 1355756010000, 'ending_time': 1355763910000, value: 25},
+          {'starting_time': 1355763910000, 'ending_time': 1355773110000, value: 50}]}
       ];
 
+      iconTestData.forEach(x => {
+        x.maxValue = x.times.reduce((prev, curr) => Math.max(prev, curr.value), 0);
+        x.times.forEach(time => time.radio = time.value / x.maxValue);
+      });
+
       void function timelineStackedIcons() {
-        var chart = d3.timeline()
-          .beginning(1355752800000)
-          .ending(1355774400000)
+        const colorScale = d3.scale.linear()
+          .domain([0, .5, 1])
+          .interpolate(d3.interpolateHcl)
+          .range([d3.rgb('#55BF3B'), d3.rgb('#DDDF0D'), d3.rgb('#DF5353')]);
+
+        const chart = d3.timeline()
+          .beginning(1355742800000)
+          .ending(1355775400000)
           .showTimeAxisTick()
           .stack()
           .margin({left:70, right:30, top:0, bottom:0})
           .background('#eee')
-          .rowSeparators('red');
+          .colors(colorScale)
+          .colorProperty('radio')
+          .rowSeparators('black');
         const format = d3.time.format("%X")
         var svg = d3.select('#timeline').append('svg').attr('width', 1000)
           .datum(iconTestData).call(chart).on('mousemove', function() {

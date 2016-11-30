@@ -56,7 +56,7 @@
         axisBgColor = "white",
         chartData = {}
       ;
-    var calcMaxHeightByLabel = function() {
+    function calcMaxHeightByLabel() {
       if (chartData.length) {
         chartData.forEach(function (d, i, datum) {
           if (d.times) {
@@ -68,10 +68,9 @@
           }
         });
       }
-    };
+    }
 
-    var appendTimeAxis = function(g, xAxis, yPosition) {
-
+    function appendTimeAxis(g, xAxis, yPosition) {
       if(showAxisHeaderBackground){ appendAxisHeaderBackground(g, 0, 0); }
 
       if(showAxisNav){ appendTimeAxisNav(g) };
@@ -80,9 +79,9 @@
         .attr("class", "axis")
         .attr("transform", "translate(" + 0 + "," + yPosition + ")")
         .call(xAxis);
-    };
+    }
 
-    var appendTimeAxisCalendarYear = function (nav) {
+    function appendTimeAxisCalendarYear(nav) {
       var calendarLabel = beginning.getFullYear();
 
       if (beginning.getFullYear() != ending.getFullYear()) {
@@ -97,7 +96,7 @@
         .text(calendarLabel)
       ;
     };
-    var appendTimeAxisNav = function (g) {
+    function appendTimeAxisNav(g) {
       var timelineBlocks = 6;
       var leftNavMargin = (margin.left - navMargin);
       var incrementValue = (width - margin.left)/timelineBlocks;
@@ -133,9 +132,9 @@
       ;
     };
 
-    var appendAxisHeaderBackground = function (g, xAxis, yAxis) {
+    function appendAxisHeaderBackground(g, xAxis, yAxis) {
       g.insert("rect")
-        .attr("class", "row-green-bar")
+        .attr("class", "timeline-background")
         .attr("x", xAxis)
         .attr("width", width)
         .attr("y", yAxis)
@@ -143,7 +142,7 @@
         .attr("fill", axisBgColor);
     };
 
-    var appendTimeAxisTick = function(g, xAxis, maxStack) {
+    function appendTimeAxisTick(g, xAxis, maxStack) {
       g.append("g")
         .attr("class", "axis")
         .attr("transform", "translate(" + 0 + "," + (margin.top + (itemHeight + itemMargin) * maxStack) + ")")
@@ -151,26 +150,22 @@
         .call(xAxis.tickFormat("").tickSize(-(margin.top + (itemHeight + itemMargin) * (maxStack - 1) + 3), 0, 0));
     };
 
-    var appendBackgroundBar = function (yAxisMapping, index, g, data, datum) {
-      var greenbarYAxis = ((itemHeight + itemMargin) * yAxisMapping[index]) + margin.top;
-      g.selectAll("svg").data(data).enter()
-        .insert("rect")
-        .attr("class", "row-green-bar")
+    function appendBackgroundBar(yAxisMapping, index, g, data, datum) {
+      g.append("rect")
+        .attr("class", "timeline-background")
         .attr("x", fullLengthBackgrounds ? 0 : margin.left)
         .attr("width", fullLengthBackgrounds ? width : (width - margin.right - margin.left))
-        .attr("y", greenbarYAxis)
         .attr("height", itemHeight)
         .attr("fill", backgroundColor instanceof Function ? backgroundColor(datum, index) : backgroundColor)
       ;
     };
 
-    var appendLabel = function (gParent, yAxisMapping, index, hasLabel, datum) {
-      var fullItemHeight    = itemHeight + itemMargin;
-      var rowsDown          = margin.top + (fullItemHeight/2) + fullItemHeight * (yAxisMapping[index] || 1);
+    function appendLabel(gParent, yAxisMapping, index, hasLabel, datum) {
+      var fullItemHeight = itemHeight + itemMargin;
 
       gParent.append("text")
         .attr("class", "timeline-label")
-        .attr("transform", "translate(" + labelMargin + "," + rowsDown + ")")
+        .attr("transform", "translate(" + labelMargin + "," + (fullItemHeight/2) + ")")
         .text(hasLabel ? labelFunction(datum.label) : datum.id)
         .on("click", function (d, i) { click(d, index, datum); })
         .on("mouseover", function (d, i) {
@@ -181,7 +176,7 @@
         });
     };
 
-    function timeline (gParent) {
+    function timeline(gParent) {
       var g = gParent.append("g");
       var gParentSize = gParent[0][0].getBoundingClientRect();
 
@@ -264,35 +259,30 @@
         xAxis.ticks(tickFormat.numTicks || tickFormat.tickTime, tickFormat.tickInterval);
       }
 
-      // draw the chart
-      g.each(function(d, i) {
-        chartData = d;
-        if (autoHeightByLabel) {
-          calcMaxHeightByLabel();
-        }
-        d.forEach( function(datum, index){
+      function drawChart(d) {
+        d.forEach(function(datum, index){
           var data = datum.times;
           var hasLabel = (typeof(datum.label) != "undefined");
+          var gLine = g.append('g')
+            .attr("transform", "translate(0 " + (margin.top + (stacked ? (itemHeight + itemMargin) * yAxisMapping[index] : 0)) + ")")
+            .attr("class", "timeline-series timeline-series-" + (datum.class || index));
 
           // issue warning about using id per data set. Ids should be individual to data elements
           if (typeof(datum.id) != "undefined") {
             console.warn("d3Timeline Warning: Ids per dataset is deprecated in favor of a 'class' key. Ids are now per data element.");
           }
 
-          if (backgroundColor) { appendBackgroundBar(yAxisMapping, index, g, data, datum); }
-
-          g.selectAll("svg").data(data).enter()
+          if (backgroundColor) { appendBackgroundBar(yAxisMapping, index, gLine, data, datum); }
+          gLine.selectAll(display + '.timeline-bar').data(data).enter()
             .append(function(d, i) {
                 return document.createElementNS(d3.ns.prefix.svg, "display" in d? d.display:display);
             })
+            .attr("class", "timeline-bar")
             .attr("x", getXPos)
-            .attr("y", getStackPosition)
             .attr("width", function (d, i) {
               return (d.ending_time - d.starting_time) * scaleFactor;
             })
-            .attr("cy", function(d, i) {
-                return getStackPosition(d, i) + itemHeight/2;
-            })
+            .attr("cy", itemHeight/2)
             .attr("cx", getXPos)
             .attr("r", function(d, i) {
               var val = parseFloat(d.label);
@@ -306,7 +296,7 @@
             })
             // .attr("r", itemHeight / 2)
             .attr("height", itemHeight)
-            .style("fill", function(d, i){
+            .attr("fill", function(d, i){
               var dColorPropName;
               if (d.color) return d.color;
               if( colorPropertyName ){
@@ -331,9 +321,6 @@
             .on("click", function (d, i) {
               click(d, index, datum);
             })
-            .attr("class", function (d, i) {
-              return datum.class ? "timelineSeries_"+datum.class : "timelineSeries_"+index;
-            })
             .attr("id", function(d, i) {
               // use deprecated id field
               if (datum.id && !d.id) {
@@ -344,13 +331,11 @@
             })
           ;
 
-          g.selectAll("svg").data(data).enter()
+          gLine.selectAll('text.timeline-text').data(data).enter()
             .append("text")
+            .attr("class", "timeline-text")
             .attr("x", getXTextPos)
-            .attr("y", getStackTextPosition)
-            .attr("class", function (d, i) {
-              return datum.class ? "timelineSeriesText_"+datum.class : "timelineSeriesText_"+index;
-            })
+            .attr("y", itemHeight*0.75)
             .text(function(d) {
               return d.label;
             })
@@ -360,24 +345,22 @@
           ;
 
           if (rowSeparatorsColor) {
-            var lineYAxis = ( itemHeight + itemMargin / 2 + margin.top + (itemHeight + itemMargin) * yAxisMapping[index]);
-            gParent.append("svg:line")
+            gLine.append("svg:line")
               .attr("class", "row-separator")
               .attr("x1", 0 + margin.left)
               .attr("x2", width - margin.right)
-              .attr("y1", lineYAxis)
-              .attr("y2", lineYAxis)
+              .attr("y1", itemHeight + itemMargin / 2)
+              .attr("y2", itemHeight + itemMargin / 2)
               .attr("stroke-width", 1)
               .attr("stroke", rowSeparatorsColor);
           }
 
           // add the label
-          if (hasLabel) { appendLabel(gParent, yAxisMapping, index, hasLabel, datum); }
+          if (hasLabel) { appendLabel(gLine, yAxisMapping, index, hasLabel, datum); }
 
           if (typeof(datum.icon) !== "undefined") {
-            gParent.append("image")
+            gLine.append("image")
               .attr("class", "timeline-label")
-              .attr("transform", "translate("+ 0 +","+ (margin.top + (itemHeight + itemMargin) * yAxisMapping[index])+")")
               .attr("xlink:href", datum.icon)
               .attr("width", margin.left)
               .attr("height", itemHeight)
@@ -388,20 +371,15 @@
                 labelmouseout(d, i, datum);
               });
           }
-
-          function getStackPosition(d, i) {
-            if (stacked) {
-              return margin.top + (itemHeight + itemMargin) * yAxisMapping[index];
-            }
-            return margin.top;
-          }
-          function getStackTextPosition(d, i) {
-            if (stacked) {
-              return margin.top + (itemHeight + itemMargin) * yAxisMapping[index] + itemHeight * 0.75;
-            }
-            return margin.top + itemHeight * 0.75;
-          }
         });
+      }
+
+      // draw the chart
+      g.each(function(d, i) {
+        if (autoHeightByLabel) {
+          calcMaxHeightByLabel();
+        }
+        drawChart(d);
       });
 
       var belowLastItem = (margin.top + (itemHeight + itemMargin) * maxStack);
