@@ -1,10 +1,15 @@
 <!doctype html>
 <html>
 <head>
-  <script src="../node_modules/d3/d3.js" charset="utf-8"></script>
+  <meta charset="utf-8" />
+  <script src="../node_modules/d3/d3.js"></script>
   <script src="../src/d3-timeline.js"></script>
 
   <style type="text/css">
+    #timeline {
+      cursor: move;
+    }
+
     .axis {
       pointer-events: none;
     }
@@ -95,7 +100,7 @@
         {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
           {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
           {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+          {'starting_time': 1355771900000, 'ending_time': 1355772900000, value: 100},]},
       ];
 
       iconTestData.forEach(x => {
@@ -110,8 +115,8 @@
           .range([d3.rgb('#55BF3B'), d3.rgb('#DDDF0D'), d3.rgb('#DF5353')]);
 
         const chart = d3.timeline()
-          .beginning(1355742800000)
-          .ending(1355775400000)
+          .zoomable()
+          .beginning(1355752800000)
           .showTimeAxisTick()
           .margin({left:70, right:30, top:0, bottom:0})
           .background('#eee')
@@ -123,19 +128,20 @@
         const svg = d3.select('#timeline').append('svg').attr('width', 1000)
           .datum(iconTestData).call(chart);
 
+        var xrScale = d3.time.scale()
+          .domain([0, 900])
+          .range([chart.beginning(), chart.ending()]);
+
         const block = svg.select('.timeline-series-block')
           .on('mousemove', function() {
             const [x, y] = d3.mouse(this);
-            console.log(x, y)
             line.classed('hidden', false);
+
+            xrScale.range([chart.beginning(), chart.ending()]);
 
             line.attr('transform', `translate(${x} 0)`)
               .select('.label').text(format(new Date(xrScale(x))));
           });
-
-        var xrScale = d3.time.scale()
-          .domain([0, chart.width()])
-          .range([chart.beginning(), chart.ending()]);
 
         const { left , right } = chart.margin()
         svg.append('line')

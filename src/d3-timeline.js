@@ -1,5 +1,7 @@
 // vim: ts=2 sw=2
 (function () {
+  "use strict";
+
   d3.timeline = function() {
     var hover = function () {},
         mouseover = function () {},
@@ -7,10 +9,7 @@
         labelmouseover = function () {},
         labelmouseout = function () {},
         click = function () {},
-        scroll = function () {},
         labelFunction = function(label) { return label; },
-        navigateLeft = function () {},
-        navigateRight = function () {},
         orient = "bottom",
         width = null,
         height = null,
@@ -27,8 +26,8 @@
         beginning = 0,
         labelMargin = 0,
         ending = 0,
-        startDatePosition = 0,
         margin = {left: 30, right:30, top: 30, bottom:30},
+        zoomable = false,
         rotateTicks = false,
         itemHeight = 20,
         itemMargin = 5,
@@ -39,75 +38,16 @@
         timeAxisTick = false,
         timeAxisTickFormat = {stroke: "stroke-dasharray", spacing: "4 10"},
         showTodayFormat = {marginTop: 25, marginBottom: 0, width: 1, color: colorCycle},
-        showBorderLine = false,
-        showBorderFormat = {marginTop: 25, marginBottom: 0, width: 1, color: colorCycle},
         showAxisHeaderBackground = false,
-        showAxisNav = false,
-        showAxisCalendarYear = false,
         axisBgColor = "white",
         chartData = {};
 
     function appendTimeAxis(g, xAxis, yPosition) {
-      if (showAxisHeaderBackground){ appendAxisHeaderBackground(g, 0, 0); }
-
-      if (showAxisNav){ appendTimeAxisNav(g) };
-
       var axis = g.append("g")
-        .attr("class", "axis")
+        .attr("class", "axis axis-time")
         .attr("transform", "translate(" + 0 + "," + yPosition + ")")
         .call(xAxis);
     }
-
-    function appendTimeAxisCalendarYear(nav) {
-      var calendarLabel = beginning.getFullYear();
-
-      if (beginning.getFullYear() != ending.getFullYear()) {
-        calendarLabel = beginning.getFullYear() + "-" + ending.getFullYear()
-      }
-
-      nav.append("text")
-        .attr("transform", "translate(" + 20 + ", 0)")
-        .attr("x", 0)
-        .attr("y", 14)
-        .attr("class", "calendarYear")
-        .text(calendarLabel)
-      ;
-    };
-    function appendTimeAxisNav(g) {
-      var timelineBlocks = 6;
-      var leftNavMargin = (margin.left - navMargin);
-      var incrementValue = (width - margin.left)/timelineBlocks;
-      var rightNavMargin = (width - margin.right - incrementValue + navMargin);
-
-      var nav = g.append('g')
-          .attr("class", "axis")
-          .attr("transform", "translate(0, 20)")
-        ;
-
-      if (showAxisCalendarYear) { appendTimeAxisCalendarYear(nav) };
-
-      nav.append("text")
-        .attr("transform", "translate(" + leftNavMargin + ", 0)")
-        .attr("x", 0)
-        .attr("y", 14)
-        .attr("class", "chevron")
-        .text("<")
-        .on("click", function () {
-          return navigateLeft(beginning, chartData);
-        })
-      ;
-
-      nav.append("text")
-        .attr("transform", "translate(" + rightNavMargin + ", 0)")
-        .attr("x", 0)
-        .attr("y", 14)
-        .attr("class", "chevron")
-        .text(">")
-        .on("click", function () {
-          return navigateRight(ending, chartData);
-        })
-      ;
-    };
 
     function appendAxisHeaderBackground(g, xAxis, yAxis) {
       g.insert("rect")
@@ -121,10 +61,10 @@
 
     function appendTimeAxisTick(g, xAxis, maxStack) {
       g.append("g")
-        .attr("class", "axis")
+        .attr("class", "axis axis-tick")
         .attr("transform", "translate(" + 0 + "," + (margin.top + (itemHeight + itemMargin) * maxStack) + ")")
         .attr(timeAxisTickFormat.stroke, timeAxisTickFormat.spacing)
-        .call(xAxis.tickFormat("").tickSize(-(margin.top + (itemHeight + itemMargin) * (maxStack - 1) + 3), 0, 0));
+        .call(xAxis);
     };
 
     function timeline(gParent) {
@@ -135,7 +75,7 @@
 
       var yAxisMapping = {},
         maxStack = 1,
-        minTime = 0,
+        minTime = Infinity,
         maxTime = 0;
 
       setWidth();
@@ -148,8 +88,8 @@
           // create y mapping for stacked graph
           yAxisMapping[index] = maxStack++;
 
-          minTime = d3.min(datum.times, function (time) { return time.starting_time; });
-          maxTime = d3.max(datum.times, function (time) { return time.ending_time; });
+          minTime = Math.min(minTime, d3.min(datum.times, function (time) { return time.starting_time; }));
+          maxTime = Math.max(maxTime, d3.max(datum.times, function (time) { return time.ending_time; }));
         });
       });
 
@@ -164,25 +104,13 @@
         .domain([beginning, ending])
         .range([margin.left, width - margin.right]);
 
-      var xAxis = d3.svg.axis()
-        .scale(xScale)
-        .orient(orient)
-        .tickFormat(tickFormat.format)
-        .tickSize(tickFormat.tickSize);
-
-      if (tickFormat.tickValues != null) {
-        xAxis.tickValues(tickFormat.tickValues);
-      } else {
-        xAxis.ticks(tickFormat.numTicks || tickFormat.tickTime, tickFormat.tickInterval);
-      }
-
       function drawChart(g, d) {
         g.selectAll('g').data(d).enter()
           .append('g')
           .each(function (datum, index) {
             var data = datum.times;
 
-            gLine = d3.select(this)
+            var gLine = d3.select(this)
               .attr("transform", "translate(0 " + (itemHeight + itemMargin) * yAxisMapping[index] + ")")
               .attr("class", "timeline-series timeline-series-" + (datum.class || index));
 
@@ -194,7 +122,7 @@
             if (backgroundColor) {
               gLine.append("rect")
                 .attr("class", "timeline-background")
-                .attr("width", "100%")
+                .attr("width", maxTime - minTime)
                 .attr("height", itemHeight)
                 .attr("fill", backgroundColor instanceof Function ? backgroundColor(datum, index) : backgroundColor);
             }
@@ -202,9 +130,11 @@
             gLine.selectAll('.timeline-bar').data(data).enter()
               .append('rect')
               .attr("class", "timeline-bar")
-              .attr("x", getXPos)
+              .attr("x", function (d, i) {
+                return d.starting_time - minTime;
+              })
               .attr("width", function (d, i) {
-                return (d.ending_time - d.starting_time) * scaleFactor;
+                return d.ending_time - d.starting_time;
               })
               .attr("height", itemHeight)
               .attr("fill", function(d, i){
@@ -244,7 +174,15 @@
             gLine.selectAll('.timeline-text').data(data).enter()
               .append("text")
               .attr("class", "timeline-text")
-              .attr("x", getXTextPos)
+              .attr("x",  function getXTextPos(d, i) {
+                var startingPos = d.starting_time - minTime;
+                var endingPos = d.ending_time - minTime;
+                if (d.alignLabel == "center") {
+                  return startingPos + (endingPos - startingPos) / 2;
+                } else {
+                  return startingPos + 5;
+                }
+              })
               .attr("y", itemHeight*0.75)
               .text(function(d) {
                 return d.label;
@@ -256,7 +194,7 @@
             if (rowSeparatorsColor) {
               gLine.append("svg:line")
                 .attr("class", "row-separator")
-                .attr("x2", "100%")
+                .attr("x2", maxTime - minTime)
                 .attr("y1", itemHeight + itemMargin / 2)
                 .attr("y2", itemHeight + itemMargin / 2)
                 .attr("stroke-width", 1)
@@ -271,7 +209,7 @@
           .each(function (datum, index) {
             var data = datum.times;
 
-            gLine = d3.select(this)
+            var gLine = d3.select(this)
               .attr("transform", "translate(0 " + (itemHeight + itemMargin) * yAxisMapping[index] + ")")
               .attr("class", "timeline-series timeline-series-" + (datum.class || index));
 
@@ -316,6 +254,8 @@
           .attr('x', margin.left)
           .attr('y', margin.top)
           .attr('class', 'timeline-series-block')
+          .append('g')
+          .attr("transform", "scale(" + scaleFactor + " 1)" + " translate(" + (minTime - beginning) + ")")
           .call(drawChart, d);
         g.append('svg')
           .attr('width', margin.left)
@@ -328,30 +268,39 @@
       var belowLastItem = (margin.top + (itemHeight + itemMargin) * maxStack);
       var aboveFirstItem = margin.top;
       var timeAxisYPosition = showAxisTop ? aboveFirstItem : belowLastItem;
-      if (showTimeAxis) { appendTimeAxis(g, xAxis, timeAxisYPosition); }
-      if (timeAxisTick) { appendTimeAxisTick(g, xAxis, maxStack); }
 
-      if (width > gParentSize.width) {
-        var move = function() {
-          var x = Math.min(0, Math.max(gParentSize.width - width, d3.event.translate[0]));
-          zoom.translate([x, 0]);
-          g.attr("transform", "translate(" + x + ",0)");
-          scroll(x*scaleFactor, xScale);
-        };
+      var xAxis, xAxisTick;
 
-        var zoom = d3.behavior.zoom().x(xScale).on("zoom", move);
+      if (showTimeAxis) {
+        xAxis = d3.svg.axis()
+          .scale(xScale)
+          .orient(orient)
+          .tickFormat(tickFormat.format)
+          .tickSize(tickFormat.tickSize);
 
-        gParent
-          .attr("class", "scrollable")
-          .call(zoom);
-
-
-        if (startDatePosition && beginning <= startDatePosition && startDatePosition <= ending) {
-          var x = - (getXPos({starting_time: startDatePosition}) - margin.left);
-          zoom.translate([x, 0]);
-          g.attr("transform", "translate(" + x + ",0)");
-          scroll(x*scaleFactor, xScale);
+        if (tickFormat.tickValues != null) {
+          xAxis.tickValues(tickFormat.tickValues);
+        } else {
+          xAxis.ticks(tickFormat.numTicks || tickFormat.tickTime, tickFormat.tickInterval);
         }
+
+        if (showAxisHeaderBackground) { appendAxisHeaderBackground(g, 0, 0); }
+        appendTimeAxis(g, xAxis, timeAxisYPosition);
+      }
+
+      if (timeAxisTick) {
+        xAxisTick = d3.svg.axis()
+          .scale(xScale)
+          .orient(orient)
+          .tickFormat("")
+          .tickSize(-(margin.top + (itemHeight + itemMargin) * (maxStack - 1) + 3), 0, 0);
+
+        if (tickFormat.tickValues != null) {
+          xAxisTick.tickValues(tickFormat.tickValues);
+        } else {
+          xAxisTick.ticks(tickFormat.numTicks || tickFormat.tickTime, tickFormat.tickInterval);
+        }
+        appendTimeAxisTick(g, xAxisTick, maxStack);
       }
 
       if (rotateTicks) {
@@ -366,35 +315,52 @@
       var gSize = g[0][0].getBoundingClientRect();
       setHeight();
 
-      if (showBorderLine) {
-        g.each(function (d, i) {
-          d.forEach(function (datum) {
-            var times = datum.times;
-            times.forEach(function (time) {
-              appendLine(xScale(time.starting_time), showBorderFormat);
-              appendLine(xScale(time.ending_time), showBorderFormat);
-            });
-          });
-        });
-      }
-
       if (showTodayLine) {
         var todayLine = xScale(new Date());
         appendLine(todayLine, showTodayFormat);
       }
 
+      if (zoomable) setZoomable();
+
       function getXPos(d, i) {
         return (d.starting_time - beginning) * scaleFactor;
       }
 
-      function getXTextPos(d, i) {
-        var startingPos = (d.starting_time - beginning) * scaleFactor;
-        var endingPos = (d.ending_time - beginning) * scaleFactor;
-        if (d.alignLabel == "center") {
-          return startingPos + (endingPos - startingPos) / 2;
-        } else {
-          return startingPos + 5;
-        }
+      function setZoomable() {
+        var contentWidth = width - margin.left - margin.right;
+        var zoom = d3.behavior.zoom()
+          .size(width, height)
+          .scaleExtent([
+            contentWidth / (maxTime - minTime),
+            contentWidth / (maxTime - minTime) * 5]
+          )
+          .translate([(beginning - minTime) * scaleFactor, 0])
+          .scale(scaleFactor)
+          .on('zoom', function() {
+            // We don't scale y axis
+            const x = Math.max(Math.min(0, d3.event.translate[0]), contentWidth - d3.event.scale * (maxTime - minTime));
+            zoom.translate([x, 0]);
+
+            // Recalc all the variables
+            scaleFactor = d3.event.scale;
+            beginning = minTime - x / d3.event.scale;
+            ending = beginning + contentWidth / d3.event.scale;
+
+            xScale.domain([beginning, ending]);
+
+            if (xAxis) {
+              // Update x axis
+              g.select('.axis-time').call(xAxis);
+            }
+
+            if (xAxisTick) {
+              g.select('.axis-tick').call(xAxisTick);
+            }
+
+            g.select('.timeline-series-block g')
+              .attr('transform', 'scale(' + d3.event.scale + ' 1) translate(' + x / d3.event.scale + ')');
+          });
+          zoom(gParent);
       }
 
       function setHeight() {
@@ -545,12 +511,6 @@
       return timeline;
     };
 
-    timeline.scroll = function (scrollFunc) {
-      if (!arguments.length) return scroll;
-      scroll = scrollFunc;
-      return timeline;
-    };
-
     timeline.colors = function (colorFormat) {
       if (!arguments.length) return colorCycle;
       colorCycle = colorFormat;
@@ -575,20 +535,14 @@
       return timeline;
     };
 
+    timeline.zoomable = function () {
+      zoomable = !zoomable;
+      return timeline;
+    }
+
     timeline.rotateTicks = function (degrees) {
       if (!arguments.length) return rotateTicks;
       rotateTicks = degrees;
-      return timeline;
-    };
-
-    timeline.showBorderLine = function () {
-      showBorderLine = !showBorderLine;
-      return timeline;
-    };
-
-    timeline.showBorderFormat = function(borderFormat) {
-      if (!arguments.length) return showBorderFormat;
-      showBorderFormat = borderFormat;
       return timeline;
     };
 
@@ -651,20 +605,6 @@
     timeline.showAxisHeaderBackground = function(bgColor) {
       showAxisHeaderBackground = !showAxisHeaderBackground;
       if (bgColor) { (axisBgColor = bgColor) };
-      return timeline;
-    };
-
-    timeline.navigate = function (navigateBackwards, navigateForwards) {
-      if (!arguments.length) return [navigateLeft, navigateRight];
-      navigateLeft = navigateBackwards;
-      navigateRight = navigateForwards;
-      showAxisNav = !showAxisNav;
-      return timeline;
-    };
-
-    timeline.startDatePosition = function(time) {
-      if (!arguments.length) return startDatePosition;
-      startDatePosition = time;
       return timeline;
     };
 
