@@ -1,92 +1,6 @@
 #d3-timeline
 A simple d3 timeline plugin.
 
-Get something that looks like
-
-![Rectangular Timeline](examples/timeline1.png)
-
-for a dataset that looks like
-
-```js
-var testData = [
-  {label: "person a", times: [
-    {"starting_time": 1355752800000, "ending_time": 1355759900000},
-    {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-  {label: "person b", times: [
-    {"starting_time": 1355759910000, "ending_time": 1355761900000}]},
-  {label: "person c", times: [
-    {"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-  ];
-```
-
-with a call that looks like
-
-```js
-var chart = d3.timeline();
-
-var svg = d3.select("#timeline1").append("svg").attr("width", 500)
-  .datum(testData).call(chart);
-```
-
-Works with circles. In case the rectangular edges are too pointy.
-
-![Circular Timeline](examples/timeline2.png)
-
-Combine rectangles and circles to your liking
-
-![Rectangular and Circular Timeline](examples/timeline3.png)
-
-by adding a ``display`` key to the data:
-
-```js
-var rectAndCircleTestData = [
-    {times: [{"starting_time": 1355752800000, "display": "circle"},
-             {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-    {times: [{"starting_time": 1355759910000, "display":"circle"}, ]},
-    {times: [{"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-  ];
-```
-
-Make a pseudo-gantt chart thingy
-
-![Gantt chart](examples/timeline4.png)
-
-with icons
-
-![Icon chart](examples/timeline5.png)
-
-For your *really* long charts, it supports scrolling. It can even do things on hover, click, and scroll for when someone accidentally interacts with your chart.
-
-You can also specify an optional `class` key in the data dictionary. This will label each timeline rectangle item within the visualization with the following id property: "timelineItem_"+class. For example, this data
-
-```js
-var testData = [
-  {class: "pA", label: "person a", times: [
-    {"starting_time": 1355752800000, "ending_time": 1355759900000},
-    {"starting_time": 1355767900000, "ending_time": 1355774400000}]},
-  {class: "pB", label: "person b", times: [
-    {"starting_time": 1355759910000, "ending_time": 1355761900000}]},
-  {class: "pC", label: "person c", times: [
-    {"starting_time": 1355761910000, "ending_time": 1355763910000}]}
-  ];
-```
-would generate `<rect>` with the following classes: `timelineItem_pA`,`timelineItem_pB`,`timelineItem_pC`. This means that you can dynamically change the visual properties of each timeline item using JQuery like so: `$(".timelineSeries_pA").css("fill","blue");`.
-If no custom class is provided, the class attribute will be generated sequentially in the order they have been provided in. e.g.: `timelineSeries_0`.
-
-Also optional is an `id` field per data element.
-
-```js
-var testData = [
-  {label: "person a", times: [
-    {"starting_time": 1355752800000, "ending_time": 1355759900000, "id": "A1"},
-    {"starting_time": 1355767900000, "ending_time": 1355774400000, "id": "A2"}]}
-  ];
-```
-
-This generates `<rect>`s with `A1` and `A2` as ids. If no id is provided, the id attribute will be generated sequentially in the order they have been provided in. e.g.: `timelineItem_0_0`.
-
-Look at the [examples](examples/example.html) for more details.
-
 ##Data formats
 
 The simplest data format only requires `starting_time` and `ending_time` for each series of data.
@@ -150,9 +64,6 @@ sets the margin between the data series in the timeline. Defaults to 5px.
 
 ###.margin({left: , right: , top: , bottom: })
 sets the margin of the entire timeline inside of the svg. Defaults to 30px all around.
-
-###.display("circle" | "rect")
-Displays the data series as either circles or rectangles. Defaults to "rect".
 
 ###.labelFormat(callback)
 registers a function to be called when the text for the label needs to

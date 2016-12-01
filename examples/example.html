@@ -5,6 +5,9 @@
   <script src="../src/d3-timeline.js"></script>
 
   <style type="text/css">
+    .axis {
+      pointer-events: none;
+    }
     .axis path,
     .axis line,
     .line line,
@@ -51,17 +54,48 @@
       text-anchor: middle;
     }
   </style>
+</head>
+<body>
+  <div>
+    <h3>Test</h3>
+    <div id="timeline"></div>
+  </div>
   <script type="text/javascript">
-    window.onload = function() {
+    void function() {
       const iconTestData = [
-        {label: 'Jackie', class:'jackie', icon: 'jackie.png', times: [
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
           {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200}]},
-        {label: 'Troll', class:'troll', icon: 'troll.png', times: [
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Troll', class: 'troll', icon: 'troll.png', times: [
           {'starting_time': 1355759910000, 'ending_time': 1355761900000, value: 50}]},
-        {label: 'Wat', class:'wat', icon: 'wat.png', times: [
+        {label: 'Wat', class: 'wat', icon: 'wat.png', times: [
           {'starting_time': 1355756010000, 'ending_time': 1355763910000, value: 25},
-          {'starting_time': 1355763910000, 'ending_time': 1355773110000, value: 50}]}
+          {'starting_time': 1355763910000, 'ending_time': 1355773110000, value: 50}]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
+        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
       ];
 
       iconTestData.forEach(x => {
@@ -79,29 +113,28 @@
           .beginning(1355742800000)
           .ending(1355775400000)
           .showTimeAxisTick()
-          .stack()
           .margin({left:70, right:30, top:0, bottom:0})
           .background('#eee')
+          .rowSeparators('black')
           .colors(colorScale)
-          .colorProperty('radio')
-          .rowSeparators('black');
+          .colorProperty('radio');
         const format = d3.time.format("%X")
-        var svg = d3.select('#timeline').append('svg').attr('width', 1000)
-          .datum(iconTestData).call(chart).on('mousemove', function() {
-          const [x, y] = d3.mouse(this);
-          const { left , right } = chart.margin()
-          if ((x >= left && x <= chart.width() - right) && (y >= 25 && y <= chart.height() - 25)) {
-            line.classed('hidden', false);
-          } else {
-            line.classed('hidden', true);
-            return;
-          }
 
-          line.attr('transform', `translate(${x} 0)`)
-            .select('.label').text(format(new Date(xrScale(x))));
-        });
+        const svg = d3.select('#timeline').append('svg').attr('width', 1000)
+          .datum(iconTestData).call(chart);
+
+        const block = svg.select('.timeline-series-block')
+          .on('mousemove', function() {
+            const [x, y] = d3.mouse(this);
+            console.log(x, y)
+            line.classed('hidden', false);
+
+            line.attr('transform', `translate(${x} 0)`)
+              .select('.label').text(format(new Date(xrScale(x))));
+          });
+
         var xrScale = d3.time.scale()
-          .domain([chart.margin().left, chart.width() - chart.margin().right])
+          .domain([0, chart.width()])
           .range([chart.beginning(), chart.ending()]);
 
         const { left , right } = chart.margin()
@@ -112,7 +145,7 @@
           .attr('y1', 25 - 2)
           .attr('y2', 25 - 2);
 
-        var line = svg.append('g').attr('class', 'line hidden').call(g => {
+        var line = block.append('g').attr('class', 'line hidden').call(g => {
           g.append('circle')
             .attr('cx', 0)
             .attr('cy', 25 - 2)
@@ -139,13 +172,7 @@
             .text('? PM');
         });
       }();
-    }
+    }();
   </script>
-</head>
-<body>
-  <div>
-    <h3>Test</h3>
-    <div id="timeline"></div>
-  </div>
 </body>
 </html>
