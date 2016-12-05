@@ -10,6 +10,8 @@
         labelmouseout = function () {},
         click = function () {},
         labelFunction = function(label) { return label; },
+        zoomFunc = function () {},
+        zoom,
         orient = "bottom",
         width = null,
         height = null,
@@ -24,14 +26,15 @@
         colorCycle = d3.scale.category20(),
         colorPropertyName = null,
         beginning = 0,
-        labelMargin = 0,
         ending = 0,
+        minTime = Infinity,
+        maxTime = 0,
+        labelMargin = 0,
         margin = {left: 30, right:30, top: 30, bottom:30},
         zoomable = false,
         rotateTicks = false,
         itemHeight = 20,
         itemMargin = 5,
-        navMargin = 60,
         showTimeAxis = true,
         showAxisTop = false,
         showTodayLine = false,
@@ -74,9 +77,7 @@
       var gParentItem = d3.select(gParent[0][0]);
 
       var yAxisMapping = {},
-        maxStack = 1,
-        minTime = Infinity,
-        maxTime = 0;
+        maxStack = 1;
 
       setWidth();
 
@@ -85,7 +86,7 @@
       g.each(function (d, i) {
         d.forEach(function (datum, index) {
 
-          // create y mapping for stacked graph
+          // create y mapping for stacked grapƒh
           yAxisMapping[index] = maxStack++;
 
           minTime = Math.min(minTime, d3.min(datum.times, function (time) { return time.starting_time; }));
@@ -97,7 +98,8 @@
       if (!beginning) beginning = minTime;
       if (!ending) ending = maxTime;
 
-      var scaleFactor = (width - margin.left - margin.right) / (ending - beginning);
+      var contentWidth = width - margin.left - margin.right;
+      var scaleFactor = contentWidth / (ending - beginning);
 
       // draw the axis
       var xScale = d3.time.scale()
@@ -250,7 +252,7 @@
       // draw the chart
       g.each(function(d, i) {
         g.append('svg')
-          .attr('width', width - margin.right - margin.left)
+          .attr('width', contentWidth)
           .attr('x', margin.left)
           .attr('y', margin.top)
           .attr('class', 'timeline-series-block')
@@ -322,13 +324,8 @@
 
       if (zoomable) setZoomable();
 
-      function getXPos(d, i) {
-        return (d.starting_time - beginning) * scaleFactor;
-      }
-
       function setZoomable() {
-        var contentWidth = width - margin.left - margin.right;
-        var zoom = d3.behavior.zoom()
+        zoom = d3.behavior.zoom()
           .size(width, height)
           .scaleExtent([
             contentWidth / (maxTime - minTime),
@@ -340,6 +337,7 @@
             // We don't scale y axis
             const x = Math.max(Math.min(0, d3.event.translate[0]), contentWidth - d3.event.scale * (maxTime - minTime));
             zoom.translate([x, 0]);
+            console.log(d3.event.translate, d3.event.scale)
 
             // Recalc all the variables
             scaleFactor = d3.event.scale;
@@ -359,6 +357,8 @@
 
             g.select('.timeline-series-block g')
               .attr('transform', 'scale(' + d3.event.scale + ' 1) translate(' + x / d3.event.scale + ')');
+
+            zoomFunc.call(zoom, beginning, ending);
           });
           zoom(gParent);
       }
@@ -445,12 +445,6 @@
       return timeline;
     };
 
-    timeline.navMargin = function (h) {
-      if (!arguments.length) return navMargin;
-      navMargin = h;
-      return timeline;
-    };
-
     timeline.height = function (h) {
       if (!arguments.length) return height;
       height = h;
@@ -511,6 +505,12 @@
       return timeline;
     };
 
+    timeline.zoom = function (f) {
+      if (!arguments.length) return zoomFunc;
+      zoomFunc = f;
+      return timeline;
+    }
+
     timeline.colors = function (colorFormat) {
       if (!arguments.length) return colorCycle;
       colorCycle = colorFormat;
@@ -537,6 +537,18 @@
 
     timeline.zoomable = function () {
       zoomable = !zoomable;
+      return timeline;
+    }
+
+    timeline.extent = function (v, gParent) {
+      if (!arguments.length) return [beginning, ending];
+
+      var scale = (width - margin.left - margin.right) / (ending - beginning);
+      var x = (minTime - beginning) * scale;
+      zoom.scale(scale);
+      zoom.translate([x, 0]);
+      zoom.event(gParent);
+
       return timeline;
     }
 

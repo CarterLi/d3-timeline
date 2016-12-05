@@ -63,9 +63,16 @@
 <body>
   <div>
     <h3>Test</h3>
+    <input type="datetime-local" id="tmin" />
+    <input type="datetime-local" id="tmax" />
     <div id="timeline"></div>
   </div>
   <script type="text/javascript">
+  Date.prototype.toDateInputValue = function() {
+    var local = new Date(this);
+    local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+    return local.toJSON().slice(0, 23);
+  };
     void function() {
       const iconTestData = [
         {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
@@ -122,7 +129,16 @@
           .background('#eee')
           .rowSeparators('black')
           .colors(colorScale)
-          .colorProperty('radio');
+          .colorProperty('radio')
+          .zoom(function (beginning, ending) {
+            tmin.value = new Date(beginning).toDateInputValue();
+            tmax.value = new Date(ending).toDateInputValue();
+          });
+
+        d3.selectAll('input[type=datetime-local]').on('change', function () {
+          chart.extent([tmin.valueAsNumber, tmax.valueAsNumber], svg);
+        });
+
         const format = d3.time.format("%X")
 
         const svg = d3.select('#timeline').append('svg').attr('width', 1000)
