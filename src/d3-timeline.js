@@ -106,6 +106,34 @@
         .domain([beginning, ending])
         .range([margin.left, width - margin.right]);
 
+      function drawBg(g, d) {
+        g.selectAll('g').data(d).enter()
+          .append('g')
+          .each(function (datum, index) {
+            var gLine = d3.select(this)
+              .attr("transform", "translate(0 " + (itemHeight + itemMargin) * yAxisMapping[index] + ")")
+              .attr("class", "timeline-series timeline-series-" + (datum.class || index));;
+
+            if (backgroundColor) {
+              gLine.append("rect")
+                .attr("class", "timeline-background")
+                .attr("width", contentWidth)
+                .attr("height", itemHeight)
+                .attr("fill", backgroundColor instanceof Function ? backgroundColor(datum, index) : backgroundColor);
+            }
+
+            if (rowSeparatorsColor) {
+              gLine.append("svg:line")
+                .attr("class", "row-separator")
+                .attr("x2", contentWidth)
+                .attr("y1", itemHeight + itemMargin / 2)
+                .attr("y2", itemHeight + itemMargin / 2)
+                .attr("stroke-width", 1)
+                .attr("stroke", rowSeparatorsColor);
+            }
+          });
+      }
+
       function drawChart(g, d) {
         g.selectAll('g').data(d).enter()
           .append('g')
@@ -119,14 +147,6 @@
             // issue warning about using id per data set. Ids should be individual to data elements
             if (typeof(datum.id) != "undefined") {
               console.warn("d3Timeline Warning: Ids per dataset is deprecated in favor of a 'class' key. Ids are now per data element.");
-            }
-
-            if (backgroundColor) {
-              gLine.append("rect")
-                .attr("class", "timeline-background")
-                .attr("width", maxTime - minTime)
-                .attr("height", itemHeight)
-                .attr("fill", backgroundColor instanceof Function ? backgroundColor(datum, index) : backgroundColor);
             }
 
             gLine.selectAll('.timeline-bar').data(data).enter()
@@ -192,16 +212,6 @@
               .attr("text-anchor", function (d) {
                 return d.alignLabel == "center" ? "middle" : "start";
               });
-
-            if (rowSeparatorsColor) {
-              gLine.append("svg:line")
-                .attr("class", "row-separator")
-                .attr("x2", maxTime - minTime)
-                .attr("y1", itemHeight + itemMargin / 2)
-                .attr("y2", itemHeight + itemMargin / 2)
-                .attr("stroke-width", 1)
-                .attr("stroke", rowSeparatorsColor);
-            }
           });
       }
 
@@ -251,12 +261,16 @@
 
       // draw the chart
       g.each(function(d, i) {
-        g.append('svg')
+        var svg = g.append('svg')
           .attr('width', contentWidth)
           .attr('x', margin.left)
           .attr('y', margin.top)
-          .attr('class', 'timeline-series-block')
-          .append('g')
+          .attr('class', 'timeline-series-block');
+        svg.append('g')
+          .attr('class', 'timeline-bg')
+          .call(drawBg, d);
+        svg.append('g')
+          .attr('class', 'timeline-chart')
           .attr("transform", "scale(" + scaleFactor + " 1)" + " translate(" + (minTime - beginning) + ")")
           .call(drawChart, d);
         g.append('svg')
@@ -362,7 +376,7 @@
               g.select('.axis-tick').call(xAxisTick);
             }
 
-            g.select('.timeline-series-block g')
+            g.select('.timeline-chart')
               .attr('transform', 'scale(' + d3.event.scale + ' 1) translate(' + x / d3.event.scale + ')');
 
             if (zoomFunc) zoomFunc.call(zoom, beginning, ending);
