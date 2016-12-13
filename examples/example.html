@@ -5,7 +5,7 @@
   <script src="../node_modules/d3/d3.js"></script>
   <script src="../src/d3-timeline.js"></script>
 
-  <style type="text/css">
+  <style>
     #timeline {
       cursor: move;
     }
@@ -35,11 +35,7 @@
     }
 
     #timeline2 .axis {
-      transform: translate(0px,40px);
-    }
-
-    .coloredDiv {
-      height:20px; width:20px; float:left;
+      transform: translate(0px, 40px);
     }
 
     .hidden {
@@ -58,6 +54,48 @@
     .line .label {
       text-anchor: middle;
     }
+
+    #durationBrusher svg {
+      border: 1px #3fbeb4 solid;
+      box-shadow: 0 0 1px 1px #f0f0f0, 0 0 1px 1px #f0f0f0 inset;
+    }
+    #durationBrusher .brush .extent {
+      fill: #0ff;
+      fill-opacity: .3;
+      shape-rendering: crispEdges;
+      stroke-width: 0;
+    }
+    #durationBrusher .brush .resize rect {
+      fill: #2d8f89;
+    }
+    #durationBrusher .brush .resize line {
+      shape-rendering: crispEdges;
+      stroke-width: 1px;
+      stroke: white;
+    }
+    #durationBrusher .brush .resize text {
+      font-size: .9em;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    #durationBrusher .brush .resize.w text {
+      transform: translate(12px, -.5em);
+    }
+
+    #durationBrusher .brush .resize.e text {
+      transform: translate(-74px, -.5em);
+    }
+    #durationBrusher .brush .resize text .time {
+    }
+    #durationBrusher .brush .resize text .date {
+      font-size: .82em;
+    }
+    #durationBrusher .brush.text-hidden .resize.w text {
+      transform: translate(-74px, -.5em);
+    }
+    #durationBrusher .brush.text-hidden .resize.e text {
+      transform: translate(12px, -.5em);
+    }
   </style>
 </head>
 <body>
@@ -65,136 +103,267 @@
     <h3>Test</h3>
     <input type="datetime-local" id="tmin" />
     <input type="datetime-local" id="tmax" />
+    <div id="durationBrusher"></div>
     <div id="timeline"></div>
   </div>
-  <script type="text/javascript">
-  Date.prototype.toDateInputValue = function() {
-    var local = new Date(this);
-    local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
-    return local.toJSON().slice(0, 23);
-  };
-    void function() {
-      const iconTestData = [
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Troll', class: 'troll', icon: 'troll.png', times: [
-          {'starting_time': 1355759910000, 'ending_time': 1355761900000, value: 50}]},
-        {label: 'Wat', class: 'wat', icon: 'wat.png', times: [
-          {'starting_time': 1355756010000, 'ending_time': 1355763910000, value: 25},
-          {'starting_time': 1355763910000, 'ending_time': 1355773110000, value: 50}]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},]},
-        {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
-          {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
-          {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
-          {'starting_time': 1355771900000, 'ending_time': 1355772900000, value: 100},]},
-      ];
+  <script>
+    'use strict';
 
-      iconTestData.forEach(x => {
-        x.maxValue = x.times.reduce((prev, curr) => Math.max(prev, curr.value), 0);
-        x.times.forEach(time => time.radio = time.value / x.maxValue);
+    Date.prototype.toDateInputValue = function toDateInputValue() {
+      var local = new Date(this);
+      local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+      return local.toJSON().slice(0, 23);
+    };
+
+    const iconTestData = [
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355775900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Troll', class: 'troll', icon: 'troll.png', times: [
+        {'starting_time': 1355759910000, 'ending_time': 1355761900000, value: 50},
+      ]},
+      {label: 'Wat', class: 'wat', icon: 'wat.png', times: [
+        {'starting_time': 1355756010000, 'ending_time': 1355763910000, value: 25},
+        {'starting_time': 1355763910000, 'ending_time': 1355773110000, value: 50},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355779900000, value: 100},
+      ]},
+      {label: 'Jackie', class: 'jackie', icon: 'jackie.png', times: [
+        {'starting_time': 1355752800000, 'ending_time': 1355759900000, value: 20},
+        {'starting_time': 1355767900000, 'ending_time': 1355774400000, value: 200},
+        {'starting_time': 1355771900000, 'ending_time': 1355772900000, value: 100},
+      ]},
+    ];
+
+    iconTestData.forEach(x => {
+      x.maxValue = x.times.reduce((prev, curr) => Math.max(prev, curr.value), 0);
+      x.times.forEach(time => time.radio = time.value / x.maxValue);
+    });
+
+    let chartSvg;
+
+    const brush = function createDurationBrusher() {
+      const data = [
+        { time: 1355752800000, value: 20 },
+        { time: 1355759900000, value: 20 },
+        { time: 1355767900000, value: 200 },
+        { time: 1355774400000, value: 200 },
+        { time: 1355775900000, value: 100 },
+        { time: 1355779900000, value: 100 }
+      ];
+      const svg = d3.select('#durationBrusher').append('svg')
+        .attr('width', 970)
+        .attr('height', 46);
+
+      const x = d3.time.scale()
+        .range([0, 970])
+        .domain(d3.extent(data, d => d.time));
+
+      const y = d3.scale.linear()
+        .range([46, 0])
+        .domain([0, d3.max(data, d => d.value) * 1.2]);
+
+      const bgArea = d3.svg.area()
+        .x(d => x(+d.time))
+        .y0(46)
+        .y1(d => y(+d.value));
+
+      svg.append('path')
+        .attr('fill', '#f0f0f0')
+        .datum(data)
+        .attr('d', bgArea);
+
+      const brush = d3.svg.brush().x(x);
+
+      const b = svg.append('g')
+        .attr('class', 'x brush')
+        .call(brush);
+
+      b.selectAll('rect')
+        .attr('height', 46);
+
+      b.selectAll('.resize rect')
+        .attr('style', null)
+        .attr('width', 12)
+        .attr('x', -6);
+
+      b.selectAll('.resize')
+        .append('line')
+        .attr('x1', -2)
+        .attr('y1', 21)
+        .attr('x2', 6)
+        .attr('y2', 21);
+      b.selectAll('.resize')
+        .append('line')
+        .attr('x1', -2)
+        .attr('y1', 23)
+        .attr('x2', 6)
+        .attr('y2', 23);
+      b.select('.resize.w')
+        .append('text')
+        .attr('y', 23)
+        .selectAll('tspan')
+        .data(['date', 'time'])
+        .enter()
+        .append('tspan')
+        .attr('class', d => d)
+        .attr('x', 0)
+        .attr('dy', (d, i) => i ? '1.2em' : 0);
+      b.select('.resize.e')
+        .append('text')
+        .attr('y', 23)
+        .selectAll('tspan')
+        .data(['date', 'time'])
+        .enter()
+        .append('tspan')
+        .attr('class', d => d)
+        .attr('x', 0)
+        .attr('dy', (d, i) => i ? '1.2em' : 0);
+
+      b.selectAll('.resize.w line')
+        .attr('transform', 'translate(-4 0)');
+
+      return brush;
+    }();
+
+
+    const formatDate = d3.time.format('%Y.%m.%d');
+    const formatTime = d3.time.format('%I:%M %p');
+    const brushText = function (bParent) {
+      const [beginning, ending] = brush.extent().map(x => new Date(x));
+      bParent.selectAll('.resize.w tspan')
+        .data([formatDate(beginning), formatTime(beginning)])
+        .attr('x', 0)
+        .text(d => d);
+      bParent.selectAll('.resize.e tspan')
+        .data([formatDate(ending), formatTime(ending)])
+        .attr('x', 0)
+        .text(d => d);
+
+      const scale = brush.x();
+      bParent.classed('text-hidden', scale(ending) - scale(beginning) < 170);
+    };
+
+    const chart = function createTimeline() {
+      const colorScale = d3.scale.linear()
+        .domain([0, .5, 1])
+        .interpolate(d3.interpolateHcl)
+        .range([d3.rgb('#55BF3B'), d3.rgb('#DDDF0D'), d3.rgb('#DF5353')]);
+
+      const chart = d3.timeline()
+        .zoomable()
+        .beginning(1355752800000)
+        .showTimeAxisTick()
+        .margin({left:70, right:30, top:0, bottom:0})
+        .background('#eee')
+        .rowSeparators('black')
+        .colors(colorScale)
+        .colorProperty('radio');
+
+      const format = d3.time.format("%X")
+
+      const svg = chartSvg = d3.select('#timeline').append('svg').attr('width', 1000)
+        .datum(iconTestData).call(chart);
+
+      var xrScale = d3.time.scale()
+        .domain([0, 900])
+        .range([chart.beginning(), chart.ending()]);
+
+      const block = svg.select('.timeline-series-block')
+        .on('mousemove', function() {
+          const [x, y] = d3.mouse(this);
+          line.classed('hidden', false);
+
+          xrScale.range([chart.beginning(), chart.ending()]);
+
+          line.attr('transform', `translate(${x} 0)`)
+            .select('.label').text(format(new Date(xrScale(x))));
+        });
+
+      const { left , right } = chart.margin()
+      svg.append('line')
+        .attr('class', 'top-line')
+        .attr('x1', left)
+        .attr('x2', chart.width() - right)
+        .attr('y1', 25 - 2)
+        .attr('y2', 25 - 2);
+
+      var line = block.append('g').attr('class', 'line hidden').call(g => {
+        g.append('circle')
+          .attr('cx', 0)
+          .attr('cy', 25 - 2)
+          .attr('r', 2);
+        g.append('circle')
+          .attr('cx', 0)
+          .attr('cy', chart.height() - 25 + 1 + chart.itemMargin())
+          .attr('r', 2);
+        g.append('line')
+          .attr('x1', 0)
+          .attr('x2', 0)
+          .attr('y1', 25)
+          .attr('y2', chart.height() - 25 - 1 + chart.itemMargin());
+        g.append('text')
+          .attr('x', 2)
+          .attr('y', 13)
+          .attr('dy', '.71em')
+          .text('Time');
+        g.append('text')
+          .attr('class', 'label')
+          .attr('x', 0)
+          .attr('y', chart.height() - 15 + chart.itemMargin())
+          .attr('dy', '.71em')
+          .text('? PM');
       });
 
-      void function timelineStackedIcons() {
-        const colorScale = d3.scale.linear()
-          .domain([0, .5, 1])
-          .interpolate(d3.interpolateHcl)
-          .range([d3.rgb('#55BF3B'), d3.rgb('#DDDF0D'), d3.rgb('#DF5353')]);
-
-        const chart = d3.timeline()
-          .zoomable()
-          .beginning(1355752800000)
-          .showTimeAxisTick()
-          .margin({left:70, right:30, top:0, bottom:0})
-          .background('#eee')
-          .rowSeparators('black')
-          .colors(colorScale)
-          .colorProperty('radio')
-          .zoom(function (beginning, ending) {
-            tmin.value = new Date(beginning).toDateInputValue();
-            tmax.value = new Date(ending).toDateInputValue();
-          });
-
-        d3.selectAll('input[type=datetime-local]').on('change', function () {
-          chart.extent([tmin.valueAsNumber, tmax.valueAsNumber], svg);
-        });
-
-        const format = d3.time.format("%X")
-
-        const svg = d3.select('#timeline').append('svg').attr('width', 1000)
-          .datum(iconTestData).call(chart);
-
-        var xrScale = d3.time.scale()
-          .domain([0, 900])
-          .range([chart.beginning(), chart.ending()]);
-
-        const block = svg.select('.timeline-series-block')
-          .on('mousemove', function() {
-            const [x, y] = d3.mouse(this);
-            line.classed('hidden', false);
-
-            xrScale.range([chart.beginning(), chart.ending()]);
-
-            line.attr('transform', `translate(${x} 0)`)
-              .select('.label').text(format(new Date(xrScale(x))));
-          });
-
-        const { left , right } = chart.margin()
-        svg.append('line')
-          .attr('class', 'top-line')
-          .attr('x1', left)
-          .attr('x2', chart.width() - right)
-          .attr('y1', 25 - 2)
-          .attr('y2', 25 - 2);
-
-        var line = block.append('g').attr('class', 'line hidden').call(g => {
-          g.append('circle')
-            .attr('cx', 0)
-            .attr('cy', 25 - 2)
-            .attr('r', 2);
-          g.append('circle')
-            .attr('cx', 0)
-            .attr('cy', chart.height() - 25 + 1 + chart.itemMargin())
-            .attr('r', 2);
-          g.append('line')
-            .attr('x1', 0)
-            .attr('x2', 0)
-            .attr('y1', 25)
-            .attr('y2', chart.height() - 25 - 1 + chart.itemMargin());
-          g.append('text')
-            .attr('x', 2)
-            .attr('y', 13)
-            .attr('dy', '.71em')
-            .text('Time');
-          g.append('text')
-            .attr('class', 'label')
-            .attr('x', 0)
-            .attr('y', chart.height() - 15 + chart.itemMargin())
-            .attr('dy', '.71em')
-            .text('? PM');
-        });
-      }();
+      return chart;
     }();
+
+    chart.zoom((beginning, ending) => {
+      tmin.value = new Date(beginning).toDateInputValue();
+      tmax.value = new Date(ending).toDateInputValue();
+      brush.extent([beginning, ending])
+      d3.select('#durationBrusher .x.brush').call(brush).call(brushText);
+    })
+
+    d3.selectAll('input[type=datetime-local]').on('change', function () {
+      chart.extent([tmin.valueAsNumber, tmax.valueAsNumber], chartSvg);
+      brush.extent([tmin.valueAsNumber, tmax.valueAsNumber])
+    });
+
+    brush.on('brush', function () {
+      const [start, end] = brush.extent();
+      tmin.value = new Date(start).toDateInputValue();
+      tmax.value = new Date(end).toDateInputValue();
+      console.log(tmin.value, tmax.value);
+      chart.extent([start, end], chartSvg);
+      d3.select('#durationBrusher .x.brush').call(brushText);
+    });
+
   </script>
 </body>
 </html>

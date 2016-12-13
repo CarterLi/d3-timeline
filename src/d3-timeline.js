@@ -325,19 +325,26 @@
       if (zoomable) setZoomable();
 
       function setZoomable() {
+        var minScale = contentWidth / (maxTime - minTime);
+
         zoom = d3.behavior.zoom()
           .size(width, height)
           .scaleExtent([
-            contentWidth / (maxTime - minTime),
-            contentWidth / (maxTime - minTime) * 5]
-          )
+            minScale,
+            Infinity
+          ])
           .translate([(beginning - minTime) * scaleFactor, 0])
           .scale(scaleFactor)
           .on('zoom', function() {
+            // Ignore infinite scales
+            if (!isFinite(d3.event.scale)) {
+              zoom.translate(d3.event.translate = [0, 0]);
+              zoom.scale(d3.event.scale = contentWidth / (maxTime - minTime));
+            }
+
             // We don't scale y axis
             const x = Math.max(Math.min(0, d3.event.translate[0]), contentWidth - d3.event.scale * (maxTime - minTime));
             zoom.translate([x, 0]);
-            console.log(d3.event.translate, d3.event.scale)
 
             // Recalc all the variables
             scaleFactor = d3.event.scale;
@@ -358,7 +365,7 @@
             g.select('.timeline-series-block g')
               .attr('transform', 'scale(' + d3.event.scale + ' 1) translate(' + x / d3.event.scale + ')');
 
-            zoomFunc.call(zoom, beginning, ending);
+            if (zoomFunc) zoomFunc.call(zoom, beginning, ending);
           });
           zoom(gParent);
       }
@@ -390,13 +397,13 @@
               throw "width of the timeline is not set. As of Firefox 27, timeline().with(x) needs to be explicitly set in order to render";
             }
           } catch (err) {
-            console.log( err );
+            console.error( err );
           }
         } else if (!(width && gParentSize.width)) {
           try {
             width = gParentItem.attr("width");
           } catch (err) {
-            console.log( err );
+            console.error( err );
           }
         }
         // if both are set, do nothing
@@ -543,11 +550,18 @@
     timeline.extent = function (v, gParent) {
       if (!arguments.length) return [beginning, ending];
 
+      beginning = +v[0];
+      ending = +v[1];
+
       var scale = (width - margin.left - margin.right) / (ending - beginning);
       var x = (minTime - beginning) * scale;
       zoom.scale(scale);
       zoom.translate([x, 0]);
+
+      var tmp = zoomFunc;
+      zoomFunc = null;
       zoom.event(gParent);
+      zoomFunc = tmp;
 
       return timeline;
     }
@@ -579,7 +593,6 @@
       if (!arguments.length) return rowSeparatorsColor;
       rowSeparatorsColor = color;
       return timeline;
-
     };
 
     timeline.background = function (color) {
