@@ -23,7 +23,7 @@ void function (global, factory) {
         click = function () {},
         labelFunction = function(label) { return label; },
         zoomFunc = function () {},
-        customiseLine = function (gLine) {},
+        customiseLineFunc = function (gLine, datum) {},
         zoom,
         orient = "bottom",
         width = null,
@@ -240,11 +240,10 @@ void function (global, factory) {
 
             // add the label
             if (datum.label != null) {
-              var fullItemHeight = itemHeight + itemMargin;
-
               gLine.append("text")
                 .attr("class", "timeline-label")
-                .attr("transform", "translate(" + labelMargin + "," + (fullItemHeight/2) + ")")
+                .attr("transform", "translate(" + labelMargin + "," + (itemHeight/2) + ")")
+                .style("dominant-baseline", "middle")
                 .text(labelFunction(datum.label))
                 .on("click", function (d, i) { click(d, index, datum); })
                 .on("mouseover", function (d, i) {
@@ -270,7 +269,7 @@ void function (global, factory) {
                 });
             }
 
-            customiseLine(gLine);
+            customiseLineFunc(gLine, datum);
           });
       }
 
@@ -288,6 +287,16 @@ void function (global, factory) {
           .attr('class', 'timeline-chart')
           .attr("transform", "scale(" + scaleFactor + " 1)" + " translate(" + (minTime - beginning) + ")")
           .call(drawChart, d);
+
+        const bbox = svg.node().getBBox();
+        svg.insert('rect', ':first-child')
+          .attr('width', bbox.width)
+          .attr('height', bbox.height)
+          .attr('x', bbox.x)
+          .attr('y', bbox.y)
+          .style('visibility', 'hidden')
+          .style('pointer-events', 'all');
+
         g.append('svg')
           .attr('width', margin.left)
           .attr('x', 0)
@@ -661,6 +670,12 @@ void function (global, factory) {
       if (bgColor) { (axisBgColor = bgColor) };
       return timeline;
     };
+
+    timeline.customiseLine = function (fn) {
+      if (!arguments.length) return customiseLineFunc;
+      customiseLineFunc = fn;
+      return timeline;
+    }
 
     return timeline;
   };
