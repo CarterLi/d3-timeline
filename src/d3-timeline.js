@@ -1,15 +1,17 @@
+/* eslint-disable */
+
 // vim: ts=2 sw=2
-void function (root, factory) {
-  "use strict"
-  if (root.d3) {
-    factory(root.d3);
+void function (global, factory) {
+  "use strict";
+  if (global.d3) {
+    factory(global.d3);
   } else if (typeof module !== 'undefined' && module.exports) {
     factory(require('d3'));
     module.exports = 'd3.timeline';
   } else if (typeof define === 'function' && define.amd) {
     define(['d3'], factory);
   }
-}(this, function (d3) {
+}(new Function('return this')(), function (d3) {
   "use strict";
 
   d3.timeline = function() {
