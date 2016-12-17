@@ -90,7 +90,7 @@ void function (global, factory) {
       var gParentItem = d3.select(gParent[0][0]);
 
       var yAxisMapping = {},
-        maxStack = 1;
+        maxStack = 0;
 
       setWidth();
 
@@ -333,7 +333,7 @@ void function (global, factory) {
           .scale(xScale)
           .orient(orient)
           .tickFormat("")
-          .tickSize(-(margin.top + (itemHeight + itemMargin) * (maxStack - 1) + 3), 0, 0);
+          .tickSize(-(margin.top + (itemHeight + itemMargin) * maxStack + 3), 0, 0);
 
         if (tickFormat.tickValues != null) {
           xAxisTick.tickValues(tickFormat.tickValues);

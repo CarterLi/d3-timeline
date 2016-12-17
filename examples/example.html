@@ -275,6 +275,8 @@
     };
 
     const chart = function createTimeline() {
+      let mouseoverItem;
+
       const colorScale = d3.scale.linear()
         .domain([0, .5, 1])
         .interpolate(d3.interpolateHcl)
@@ -284,13 +286,19 @@
         .zoomable()
         .beginning(1355752800000)
         .showTimeAxisTick()
-        .margin({left:70, right:30, top:0, bottom:0})
+        .margin({left:70, right:30, top:5, bottom:0})
         .background('#eee')
         .rowSeparators('black')
         .colors(colorScale)
         .colorProperty('radio')
         .customiseLine((g, datum) => {
           console.log(g, datum);
+        })
+        .mouseover((d, i, datum) => {
+          mouseoverItem = ` ${datum.label}: ${d.value}`;
+        })
+        .mouseout((d, i, datum) => {
+          mouseoverItem = '';
         });
 
       const format = d3.time.format("%X")
@@ -304,8 +312,6 @@
 
       const block = svg.select('.timeline-series-block')
         .on('mousemove', function() {
-          line.classed('hidden', false);
-
           const [x, y] = d3.mouse(this);
 
           xrScale.range([chart.beginning(), chart.ending()]);
@@ -316,6 +322,9 @@
         })
         .on('mouseout', function() {
           line.classed('hidden', true)
+        })
+        .on('mouseover', function() {
+          line.classed('hidden', false)
         });
 
       const { left , right } = chart.margin()
@@ -323,28 +332,32 @@
         .attr('class', 'top-line')
         .attr('x1', left)
         .attr('x2', chart.width() - right)
-        .attr('y1', 25 - 2)
-        .attr('y2', 25 - 2);
+        .attr('y1', 2)
+        .attr('y2', 2);
 
-      var line = block.append('g').attr('class', 'line hidden').call(g => {
-        g.append('line')
-          .attr('x1', 0)
-          .attr('x2', 0)
-          .attr('y1', 25)
-          .attr('y2', chart.height() - 25 - 1 + chart.itemMargin());
-        const textg = g.append('g')
-          .attr('class', 'label');
-        textg.append('rect')
-          .attr('width', 60)
-          .attr('height', '2em')
-          .attr('rx', 5)
-          .attr('ry', 5);
-        textg.append('text')
-          .attr('x', 30)
-          .attr('y', '1.05em')
-          .attr('style', 'dominant-baseline: middle; text-anchor: middle')
-          .text('? PM');
-      });
+      var line = svg.append('g')
+        .attr('transform', 'translate(70 5)')
+        .append('g')
+        .attr('class', 'line hidden')
+        .call(g => {
+          g.append('line')
+            .attr('x1', 0)
+            .attr('x2', 0)
+            .attr('y1', -2)
+            .attr('y2', chart.height() - 25 - 6 + chart.itemMargin());
+          const textg = g.append('g')
+            .attr('class', 'label');
+          textg.append('rect')
+            .attr('width', 60)
+            .attr('height', '2em')
+            .attr('rx', 5)
+            .attr('ry', 5);
+          textg.append('text')
+            .attr('x', 30)
+            .attr('y', '1.05em')
+            .attr('style', 'dominant-baseline: middle; text-anchor: middle')
+            .text('? PM');
+        });
 
       return chart;
     }();
