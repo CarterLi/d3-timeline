@@ -112,7 +112,7 @@ const brushText = function (bParent) {
   bParent.classed('text-hidden', scale(ending) - scale(beginning) < 170);
 };
 
-const chart = function createTimeline() {
+const updateChart = function createTimeline() {
   let mouseoverItem;
 
   const colorScale = d3.scale.linear()
@@ -122,6 +122,7 @@ const chart = function createTimeline() {
 
   const chart = d3.timeline()
     .showTimeAxisTick()
+    .showRectLabel(false)
     .margin({left:70, right:30, top:5, bottom:0})
     .background('#eee')
     .rowSeparators('black')
@@ -139,8 +140,11 @@ const chart = function createTimeline() {
 
   const format = d3.time.format("%X")
 
-  const svg = chartSvg = d3.select('#timeline').append('svg').attr('width', 1000)
-    .datum(iconTestData).call(chart);
+  const svg = chartSvg = d3.select('#timeline')
+    .append('svg')
+    .attr('width', 1000)
+    .datum(iconTestData);
+  const updateChart = chart(svg);
 
   var xrScale = d3.time.scale()
     .domain([0, 900])
@@ -203,11 +207,11 @@ const chart = function createTimeline() {
         .text('? PM');
     });
 
-  return chart;
+  return updateChart;
 }();
 
 d3.selectAll('input[type=datetime-local]').on('change', function () {
-  chart.extent([tmin.valueAsNumber, tmax.valueAsNumber], chartSvg);
+  updateChart([tmin.valueAsNumber, tmax.valueAsNumber]);
   brush.extent([tmin.valueAsNumber, tmax.valueAsNumber])
 });
 
@@ -216,6 +220,6 @@ brush.on('brush', function () {
   tmin.value = new Date(start).toDateInputValue();
   tmax.value = new Date(end).toDateInputValue();
   console.log(tmin.value, tmax.value);
-  chart.extent([start, end], chartSvg);
+  updateChart([start, end]);
   d3.select('#durationBrusher .x.brush').call(brushText);
 });
