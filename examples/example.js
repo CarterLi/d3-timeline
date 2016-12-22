@@ -121,7 +121,6 @@ const chart = function createTimeline() {
     .range([d3.rgb('#55BF3B'), d3.rgb('#DDDF0D'), d3.rgb('#DF5353')]);
 
   const chart = d3.timeline()
-    .zoomable()
     .showTimeAxisTick()
     .margin({left:70, right:30, top:5, bottom:0})
     .background('#eee')
@@ -206,13 +205,6 @@ const chart = function createTimeline() {
 
   return chart;
 }();
-
-chart.zoom((beginning, ending) => {
-  tmin.value = new Date(beginning).toDateInputValue();
-  tmax.value = new Date(ending).toDateInputValue();
-  brush.extent([beginning, ending])
-  d3.select('#durationBrusher .x.brush').call(brush).call(brushText);
-})
 
 d3.selectAll('input[type=datetime-local]').on('change', function () {
   chart.extent([tmin.valueAsNumber, tmax.valueAsNumber], chartSvg);
