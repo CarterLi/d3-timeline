@@ -1,0 +1,95 @@
+#timeline {
+  cursor: move;
+}
+
+.axis {
+  pointer-events: none;
+}
+.axis path,
+.axis line,
+.line line,
+.top-line {
+  fill: none;
+  stroke: black;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font-family: sans-serif;
+  font-size: 10px;
+  stroke: none;
+}
+
+.timeline-label {
+  font-family: sans-serif;
+  font-size: 12px;
+}
+
+#timeline2 .axis {
+  transform: translate(0px, 40px);
+}
+
+.hidden {
+  display: none;
+}
+
+.line {
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.line line {
+  stroke: black;
+}
+
+.line rect {
+  fill: rgba(0,0,0, .6);
+}
+
+.line text {
+  fill: white;
+}
+
+.line .label {
+  text-anchor: middle;
+}
+
+#durationBrusher svg {
+  border: 1px #3fbeb4 solid;
+  box-shadow: 0 0 1px 1px #f0f0f0, 0 0 1px 1px #f0f0f0 inset;
+}
+#durationBrusher .brush .extent {
+  fill: #0ff;
+  fill-opacity: .3;
+  shape-rendering: crispEdges;
+  stroke-width: 0;
+}
+#durationBrusher .brush .resize rect {
+  fill: #2d8f89;
+}
+#durationBrusher .brush .resize line {
+  shape-rendering: crispEdges;
+  stroke-width: 1px;
+  stroke: white;
+}
+#durationBrusher .brush .resize text {
+  font-size: .9em;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+#durationBrusher .brush .resize.w text {
+  transform: translate(12px, -.5em);
+}
+
+#durationBrusher .brush .resize.e text {
+  transform: translate(-74px, -.5em);
+}
+#durationBrusher .brush .resize text .date {
+  font-size: .82em;
+}
+#durationBrusher .brush.text-hidden .resize.w text {
+  transform: translate(-74px, -.5em);
+}
+#durationBrusher .brush.text-hidden .resize.e text {
+  transform: translate(12px, -.5em);
+}
