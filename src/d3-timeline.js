@@ -20,8 +20,9 @@ void function (global, factory) {
         mouseout = function () {},
         labelmouseover = function () {},
         labelmouseout = function () {},
+        labelclick = function () {},
         click = function () {},
-        labelFunction = function(label) { return label; },
+        labelFunction = function (label) { return label; },
         customiseLineFunc = function (gLine, datum) {},
         showRectLabel = true,
         orient = "bottom",
@@ -46,13 +47,11 @@ void function (global, factory) {
         itemMargin = 5,
         showTimeAxis = true,
         showAxisTop = false,
-        showTodayLine = false,
+        showSpecifiedTimeLine,
         timeAxisTick = false,
         timeAxisTickFormat = {stroke: "stroke-dasharray", spacing: "4 10"},
-        showTodayFormat = {marginTop: 25, marginBottom: 0, width: 1, color: colorCycle},
-        axisBgColor = "white",
-        chartData = {},
-        updateChart;
+        showSpecifiedTimeLineFormat = {marginTop: 0, marginBottom: 0, width: 1, color: colorCycle},
+        axisBgColor = "white";
 
     function appendTimeAxis(g, xAxis, yPosition) {
       return g.append("g")
@@ -215,7 +214,14 @@ void function (global, factory) {
 
           var gLine = d3.select(this)
             .attr("transform", "translate(0 " + (itemHeight + itemMargin) * index + ")")
-            .attr("class", "timeline-series timeline-series-" + (datum.class || index));
+            .attr("class", "timeline-series timeline-series-" + (datum.class || index))
+            .on("click", function (d) { labelclick(d, index); })
+            .on("mouseover", function (d) {
+              labelmouseover(d, index);
+            })
+            .on("mouseout", function (d) {
+              labelmouseout(d, index);
+            });
 
           // add the label
           if (datum.label != null) {
@@ -223,14 +229,7 @@ void function (global, factory) {
               .attr("class", "timeline-label")
               .attr("transform", "translate(" + labelMargin + "," + (itemHeight/2) + ")")
               .style("dominant-baseline", "middle")
-              .text(labelFunction(datum.label))
-              .on("click", function (d, i) { click(d, index, datum); })
-              .on("mouseover", function (d, i) {
-                labelmouseover(d, i, datum);
-              })
-              .on("mouseout", function (d, i) {
-                labelmouseout(d, i, datum);
-              });
+              .text(labelFunction(datum.label));
           }
 
           if (datum.icon != null) {
@@ -238,14 +237,7 @@ void function (global, factory) {
               .attr("class", "timeline-label")
               .attr("xlink:href", datum.icon)
               .attr("width", "100%")
-              .attr("height", itemHeight)
-              .on("click", function (d, i) { click(d, index, datum); })
-              .on("labelmouseover", function (d, i) {
-                labelmouseover(d, i, datum);
-              })
-              .on("labelmouseout", function (d, i) {
-                labelmouseout(d, i, datum);
-              });
+              .attr("height", itemHeight);
           }
 
           customiseLineFunc(gLine, datum);
@@ -331,23 +323,25 @@ void function (global, factory) {
 
       void function setHeight() {
         if (height == null) {
-          height = g.node().getBBox().height;
+          height = g.node().getBBox().height + margin.bottom;
         }
         svgRoot.attr('height', height);
       }();
 
-      if (showTodayLine) {
-        var todayLine = xScale(new Date());
-        appendLine(todayLine, showTodayFormat);
+      var specifiedTimeLine;
+
+      if (showSpecifiedTimeLine) {
+        specifiedTimeLine = refreshVerticalLine(+showSpecifiedTimeLine, showSpecifiedTimeLineFormat);
       }
 
+      function refreshVerticalLine(time, lineFormat, existingLine) {
+        var x = xScale(time) + margin.left;
 
-      function appendLine(lineScale, lineFormat) {
-        svgRoot.append("svg:line")
-          .attr("x1", lineScale)
-          .attr("y1", lineFormat.marginTop)
-          .attr("x2", lineScale)
-          .attr("y2", height - lineFormat.marginBottom)
+        return (existingLine || svgRoot.append("svg:line"))
+          .attr("x1", x)
+          .attr("y1", margin.top + lineFormat.marginTop)
+          .attr("x2", x)
+          .attr("y2", margin.top + (itemHeight + itemMargin) * d.length - lineFormat.marginBottom)
           .style("stroke", lineFormat.color)
           .style("stroke-width", lineFormat.width);
       }
@@ -361,6 +355,7 @@ void function (global, factory) {
         drawChart(svgRoot.select('.timeline-chart'));
         if (xAxis) svgRoot.select('.axis-time').call(xAxis);
         if (xAxisTick) svgRoot.select('.axis-tick').call(xAxisTick);
+        if (specifiedTimeLine) refreshVerticalLine(+showSpecifiedTimeLine, showSpecifiedTimeLineFormat, specifiedTimeLine);
       }
     }
 
@@ -450,6 +445,12 @@ void function (global, factory) {
       return timeline;
     };
 
+    timeline.labelclick = function (clickFunc) {
+      if (!arguments.length) return click;
+      labelclick = clickFunc;
+      return timeline;
+    };
+
     timeline.click = function (clickFunc) {
       if (!arguments.length) return click;
       click = clickFunc;
@@ -486,14 +487,15 @@ void function (global, factory) {
       return timeline;
     };
 
-    timeline.showToday = function () {
-      showTodayLine = !showTodayLine;
+    timeline.showSpecifiedTimeLine = function (time) {
+      if (!arguments.length) return showSpecifiedTimeLine;
+      showSpecifiedTimeLine = time;
       return timeline;
     };
 
-    timeline.showTodayFormat = function(todayFormat) {
-      if (!arguments.length) return showTodayFormat;
-      showTodayFormat = todayFormat;
+    timeline.showSpecifiedTimeLineFormat = function(format) {
+      if (!arguments.length) return showSpecifiedTimeLineFormat;
+      showSpecifiedTimeLineFormat = format;
       return timeline;
     };
 

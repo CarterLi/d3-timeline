@@ -131,6 +131,13 @@ const updateChart = function createTimeline() {
     .customiseLine((g, datum) => {
       console.log(g, datum);
     })
+    .showSpecifiedTimeLine(1480907460000)
+    .showSpecifiedTimeLineFormat({
+      marginTop: -2,
+      marginBottom: 0,
+      width: 2,
+      color: 'green'
+    })
     .mouseover((d, i, datum) => {
       mouseoverItem = d;
     })
